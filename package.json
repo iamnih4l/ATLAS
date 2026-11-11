@@ -1,0 +1,11 @@
+{
+  "name": "atlas-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --dir atlas-app dev",
+    "build": "pnpm --dir atlas-app build",
+    "start": "pnpm --dir atlas-app start",
+    "lint": "pnpm --dir atlas-app lint"
+  }
+}

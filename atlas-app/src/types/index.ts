@@ -264,3 +264,4 @@ export interface PlaceSearchResult {
   longitude: number;
   types: string[];
 }
+

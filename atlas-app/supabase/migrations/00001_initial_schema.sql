@@ -497,3 +497,4 @@ CREATE TRIGGER update_connected_accounts_updated_at
 -- Create bucket: 'experience-media' (private)
 -- Create bucket: 'avatars' (public)
 -- Policies handled via Supabase Dashboard storage policies
+
