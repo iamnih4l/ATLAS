@@ -154,8 +154,7 @@ CRITICAL: Return ONLY a raw JSON array matching this exact schema:
     "longitude": 135.5678,
     "category": "Adventure | Nature | Culture | Food & Dining | Historic | Wildlife | Travel",
     "description": "2 vivid sentences describing the experience and sensory details.",
-    "reason": "1 sentence why this fits the user's travel journey.",
-    "externalUrl": "https://official-tourism-link-or-blank"
+    "reason": "1 sentence why this fits the user's travel journey."
   }
 ]`;
 
@@ -196,6 +195,8 @@ CRITICAL: Return ONLY a raw JSON array matching this exact schema:
       }
 
       const img = CATEGORY_IMAGES[item.category] || CATEGORY_IMAGES.default;
+      const searchTerms = `${item.title || ''} ${item.locationName || item.city || ''} ${item.country || ''}`.trim();
+      const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(searchTerms || 'travel destination')}`;
 
       return {
         id: `gemini-rec-${idx}-${Date.now()}`,
@@ -207,7 +208,7 @@ CRITICAL: Return ONLY a raw JSON array matching this exact schema:
         longitude: lng,
         category: item.category || 'Travel',
         reason: item.reason || 'Curated especially for your ATLAS journey.',
-        external_url: item.externalUrl || null,
+        external_url: mapsUrl,
         image_url: img,
         distance_km: distance,
         mode,

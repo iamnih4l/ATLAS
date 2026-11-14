@@ -144,6 +144,9 @@ export function getRecommendationsForMode(
       distance = calculateDistanceKm(userLat, userLng, item.latitude, item.longitude);
     }
 
+    const searchTerms = `${item.title} ${item.locationName} ${item.city} ${item.country}`.trim();
+    const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(searchTerms)}`;
+
     return {
       id: `rec-${mode}-${idx}-${Date.now()}`,
       user_id: 'demo-user',
@@ -154,7 +157,7 @@ export function getRecommendationsForMode(
       longitude: item.longitude,
       category: item.category,
       reason: item.reason,
-      external_url: item.externalUrl || null,
+      external_url: mapsUrl,
       image_url: item.imageUrl,
       distance_km: distance,
       mode,

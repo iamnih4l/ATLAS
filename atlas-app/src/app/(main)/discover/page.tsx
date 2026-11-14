@@ -18,7 +18,9 @@ import {
   Bot,
   Globe2,
   Search,
+  Info,
 } from 'lucide-react';
+import { Modal } from '@/components/ui/modal';
 import { DoodleSparkle, DoodleUnderline, WashiTape, PassportStamp } from '@/components/ui/doodles';
 import { PixelPlane } from '@/components/ui/pixel-stickers';
 import { StarSpike, JoyBlob } from '@/components/ui/mascot-doodles';
@@ -39,6 +41,7 @@ export default function DiscoverPage() {
   const [destinationInput, setDestinationInput] = useState('');
   const [recommendations, setRecommendations] = useState<AIRecommendation[]>([]);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+  const [selectedRecForDetails, setSelectedRecForDetails] = useState<AIRecommendation | null>(null);
 
   // Conversational Chat with Orion
   const [messages, setMessages] = useState<
@@ -444,16 +447,14 @@ export default function DiscoverPage() {
                       <Globe2 className="w-3.5 h-3.5 stroke-[2.5]" /> Fly on Earth
                     </Link>
 
-                    {rec.external_url && (
-                      <a
-                        href={rec.external_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-xs text-[#171313]/60 hover:text-[#171313] flex items-center gap-1 font-bold"
-                      >
-                        <ExternalLink className="w-3 h-3" /> Details
-                      </a>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedRecForDetails(rec)}
+                      className="text-xs text-[#171313]/70 hover:text-[#6425F5] flex items-center gap-1 font-bold cursor-pointer transition-colors"
+                      title="View Experience Details"
+                    >
+                      <Info className="w-3.5 h-3.5 stroke-[2.5]" /> Details
+                    </button>
                   </div>
 
                   <button
@@ -484,6 +485,131 @@ export default function DiscoverPage() {
           })}
         </div>
       </div>
+
+      {/* Experience Details Modal */}
+      {selectedRecForDetails && (
+        <Modal
+          isOpen={!!selectedRecForDetails}
+          onClose={() => setSelectedRecForDetails(null)}
+          title={selectedRecForDetails.title}
+          description={`${selectedRecForDetails.category} • ${selectedRecForDetails.location_name}`}
+          maxWidth="2xl"
+        >
+          <div className="space-y-4 pt-1">
+            {/* Hero Image & Tags */}
+            {selectedRecForDetails.image_url && (
+              <div className="relative h-60 w-full rounded-2xl overflow-hidden border-2 border-[#171313] shadow-pop-sm">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={selectedRecForDetails.image_url}
+                  alt={selectedRecForDetails.title}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute top-3 left-3 flex flex-wrap gap-2">
+                  <span className="px-3 py-1 bg-[#FFD45A] text-[#171313] border-2 border-[#171313] rounded-full text-xs font-black uppercase tracking-wider shadow-pop-xs">
+                    {selectedRecForDetails.category}
+                  </span>
+                  {selectedRecForDetails.distance_km != null && (
+                    <span className="px-3 py-1 bg-white text-[#171313] border-2 border-[#171313] rounded-full text-xs font-black tracking-wider shadow-pop-xs">
+                      {Math.round(selectedRecForDetails.distance_km).toLocaleString()} km away
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Geographical Location Card */}
+            <div className="flex flex-wrap items-center justify-between gap-2 p-3.5 bg-white rounded-2xl border-2 border-[#171313] shadow-pop-xs">
+              <div className="flex items-center gap-2 text-xs font-black text-[#171313]">
+                <MapPin className="w-4 h-4 text-[#F04432] stroke-[2.5] shrink-0" />
+                <span>{selectedRecForDetails.location_name}</span>
+              </div>
+              {selectedRecForDetails.latitude != null && selectedRecForDetails.longitude != null && (
+                <div className="text-[11px] font-mono text-[#171313]/70 font-bold bg-[#FFF4D9] px-2.5 py-1 rounded-lg border border-[#171313]/20">
+                  GPS: {selectedRecForDetails.latitude.toFixed(4)}°, {selectedRecForDetails.longitude.toFixed(4)}°
+                </div>
+              )}
+            </div>
+
+            {/* Comprehensive Description */}
+            <div className="p-4 bg-white rounded-2xl border-2 border-[#171313] space-y-2 shadow-pop-xs">
+              <h4 className="text-xs font-black uppercase tracking-wider text-[#171313]">Experience Overview</h4>
+              <p className="text-sm text-[#171313]/90 leading-relaxed font-medium">
+                {selectedRecForDetails.description}
+              </p>
+            </div>
+
+            {/* Why Orion Picked This */}
+            <div className="p-4 bg-[#6425F5]/10 rounded-2xl border-2 border-[#6425F5] space-y-1.5">
+              <div className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-[#6425F5]">
+                <Sparkles className="w-4 h-4 stroke-[2.5]" />
+                <span>Why Orion Curated This For You</span>
+              </div>
+              <p className="text-xs text-[#171313] leading-relaxed font-bold">
+                {selectedRecForDetails.reason}
+              </p>
+            </div>
+
+            {/* Modal Bottom Actions */}
+            <div className="pt-3 flex flex-wrap items-center justify-between gap-3 border-t-2 border-[#171313]/15">
+              {/* Google Maps Search (Safe fallback if user wants external search) */}
+              <a
+                href={
+                  selectedRecForDetails.external_url ||
+                  `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                    `${selectedRecForDetails.title} ${selectedRecForDetails.location_name}`
+                  )}`
+                }
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3.5 py-2 bg-white hover:bg-slate-50 text-[#171313] border-2 border-[#171313] rounded-xl text-xs font-black flex items-center gap-1.5 shadow-pop-xs transition-transform active:translate-x-0.5 active:translate-y-0.5 cursor-pointer"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                <span>Open in Google Maps</span>
+              </a>
+
+              <div className="flex items-center gap-2">
+                {/* Fly on 3D Earth */}
+                <Link
+                  href="/globe"
+                  onClick={() => {
+                    handleFly(selectedRecForDetails);
+                    setSelectedRecForDetails(null);
+                  }}
+                  className="px-4 py-2 bg-[#6425F5] text-white hover:bg-[#521ecf] border-2 border-[#171313] rounded-xl text-xs font-black flex items-center gap-1.5 shadow-pop-xs transition-transform active:translate-x-0.5 active:translate-y-0.5"
+                >
+                  <Globe2 className="w-3.5 h-3.5 stroke-[2.5]" />
+                  <span>Fly on Earth</span>
+                </Link>
+
+                {/* Add to Wishlist */}
+                <button
+                  disabled={savedIds.has(selectedRecForDetails.id)}
+                  onClick={() => handleSaveToWishlist(selectedRecForDetails)}
+                  className={cn(
+                    'px-4 py-2 rounded-xl text-xs font-black border-2 border-[#171313] transition-all flex items-center gap-1.5 cursor-pointer',
+                    savedIds.has(selectedRecForDetails.id)
+                      ? 'bg-emerald-200 text-[#171313] shadow-none'
+                      : 'bg-[#FFD45A] text-[#171313] shadow-pop-xs hover:scale-105 active:translate-x-0.5 active:translate-y-0.5'
+                  )}
+                >
+                  {savedIds.has(selectedRecForDetails.id) ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 stroke-[3]" />
+                      <span>Saved to Wishlist</span>
+                    </>
+                  ) : (
+                    <>
+                      <BookmarkCheck className="w-3.5 h-3.5 stroke-[2.5]" />
+                      <span>Save to Wishlist</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
