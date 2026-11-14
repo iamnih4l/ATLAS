@@ -1,17 +1,41 @@
 import { NextResponse } from 'next/server';
-import { VERIFIED_EXPERIENCES, getRecommendationsForMode } from '@/lib/ai-companion';
+import { chatWithOrionGemini, generateGeminiRecommendations } from '@/lib/gemini';
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { mode, query, experiences = [], locations = [] } = body;
+    const {
+      action = 'recommendations',
+      messages = [],
+      mode = 'next_experience',
+      query = '',
+      experiences = [],
+      locations = [],
+      userLat,
+      userLng,
+    } = body;
 
-    const recommendations = getRecommendationsForMode(
-      mode || 'next_experience',
+    if (action === 'chat') {
+      const reply = await chatWithOrionGemini(messages, {
+        experiences,
+        locations,
+        userLat,
+        userLng,
+      });
+
+      return NextResponse.json({
+        success: true,
+        reply,
+      });
+    }
+
+    // Default: generate recommendations
+    const recommendations = await generateGeminiRecommendations(mode, query, {
       experiences,
       locations,
-      query
-    );
+      userLat,
+      userLng,
+    });
 
     return NextResponse.json({
       success: true,
@@ -19,7 +43,10 @@ export async function POST(request: Request) {
       recommendations,
     });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'AI generation failed' }, { status: 500 });
+    console.error('API AI error:', err);
+    return NextResponse.json(
+      { error: err.message || 'AI request failed' },
+      { status: 500 }
+    );
   }
 }
-

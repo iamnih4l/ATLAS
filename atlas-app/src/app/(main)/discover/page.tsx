@@ -56,13 +56,44 @@ export default function DiscoverPage() {
 
   // Load recommendations when mode or destination changes
   useEffect(() => {
-    const recs = getRecommendationsForMode(
-      activeMode,
-      experiences,
-      locations,
-      destinationInput || undefined
-    );
-    setRecommendations(recs);
+    let isCancelled = false;
+    async function fetchRecs() {
+      try {
+        const res = await fetch('/api/ai', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'recommendations',
+            mode: activeMode,
+            query: destinationInput || undefined,
+            experiences,
+            locations,
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (!isCancelled && data.recommendations && data.recommendations.length > 0) {
+            setRecommendations(data.recommendations);
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('API error, falling back to local pool:', err);
+      }
+      if (!isCancelled) {
+        const recs = getRecommendationsForMode(
+          activeMode,
+          experiences,
+          locations,
+          destinationInput || undefined
+        );
+        setRecommendations(recs);
+      }
+    }
+    fetchRecs();
+    return () => {
+      isCancelled = true;
+    };
   }, [activeMode, experiences, locations, destinationInput]);
 
   const handleSaveToWishlist = (rec: AIRecommendation) => {
@@ -80,7 +111,7 @@ export default function DiscoverPage() {
     }
   };
 
-  const handleSendMessage = (textToSend?: string) => {
+  const handleSendMessage = async (textToSend?: string) => {
     const text = textToSend || chatInput;
     if (!text.trim()) return;
 
@@ -90,18 +121,34 @@ export default function DiscoverPage() {
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
 
-    setMessages((prev) => [...prev, userMsg]);
+    const nextMessages = [...messages, userMsg];
+    setMessages(nextMessages);
     if (!textToSend) setChatInput('');
     setIsTyping(true);
 
-    setTimeout(() => {
-      let reply = `That sounds like an incredible idea! Based on your adventures, I recommend checking out our suggestions below. I have filtered verified real-world coordinates for you!`;
-      if (text.toLowerCase().includes('japan') || text.toLowerCase().includes('kyoto') || text.toLowerCase().includes('tokyo')) {
-        reply = `Since you loved Kyoto's cultural temples, you must visit Shirakawa-go in Gifu Prefecture — a UNESCO mountain village with traditional thatched farmhouses and hot springs!`;
-      } else if (text.toLowerCase().includes('adrenaline') || text.toLowerCase().includes('adventure') || text.toLowerCase().includes('skydive')) {
-        reply = `Since you enjoyed skydiving in Dubai, your ultimate thrill is Queenstown, New Zealand — the adventure capital of the world! Bungee jumping over the Nevis canyon is unmatched.`;
-      } else if (text.toLowerCase().includes('nature') || text.toLowerCase().includes('water') || text.toLowerCase().includes('falls')) {
-        reply = `If Niagara Falls blew you away, consider Iguazu Falls on the Argentina/Brazil border. It spans 2.7 km with 275 individual waterfalls surrounded by rainforest!`;
+    try {
+      const res = await fetch('/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'chat',
+          messages: nextMessages.map((m) => ({
+            role: m.role,
+            content: m.content,
+          })),
+          experiences,
+          locations,
+        }),
+      });
+
+      let reply = '';
+      if (res.ok) {
+        const data = await res.json();
+        reply = data.reply;
+      }
+      if (!reply) {
+        reply =
+          'That sounds like an incredible idea! Based on your adventures, I recommend checking out our suggestions below. I have filtered verified real-world coordinates for you!';
       }
 
       setMessages((prev) => [
@@ -112,8 +159,19 @@ export default function DiscoverPage() {
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         },
       ]);
+    } catch (err) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'orion',
+          content:
+            'That sounds like a thrilling expedition! Check out the handpicked recommendation cards below for grounded coordinates.',
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        },
+      ]);
+    } finally {
       setIsTyping(false);
-    }, 800);
+    }
   };
 
   const promptSuggestions = [
