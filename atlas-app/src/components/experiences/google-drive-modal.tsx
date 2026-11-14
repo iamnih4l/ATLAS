@@ -46,16 +46,16 @@ export function GoogleDriveModal({
       <div className="space-y-4">
         {/* Credentials Status Banner */}
         {!isConfigured && !isConnected && (
-          <div className="p-3.5 bg-[#18181e] border border-[#27272a] rounded-lg text-xs space-y-2">
+          <div className="p-3.5 bg-amber-100 border-2 border-slate-900 rounded-2xl text-xs space-y-2 shadow-pop-sm">
             <div className="flex items-center justify-between">
-              <span className="font-semibold text-[#f5f5f0] flex items-center gap-1.5">
-                <Cloud className="w-4 h-4 text-emerald-400" /> Google Drive OAuth Integration
+              <span className="font-black text-slate-900 flex items-center gap-1.5">
+                <Cloud className="w-4 h-4 text-emerald-600 stroke-[2.5]" /> Google Drive OAuth Integration
               </span>
-              <Badge variant="outline" size="sm">Configurable in .env</Badge>
+              <Badge variant="outline" size="sm">Configurable</Badge>
             </div>
-            <p className="text-[#a1a1aa] text-[11px] leading-relaxed">
-              To connect your real Google Drive, add <code className="text-emerald-300 font-mono">GOOGLE_CLIENT_ID</code> and <code className="text-emerald-300 font-mono">GOOGLE_CLIENT_SECRET</code> to your <code className="font-mono text-white">.env.local</code>.
-              For testing right now, you can connect to the authenticated simulation workspace below.
+            <p className="text-slate-700 text-[11px] leading-relaxed font-bold">
+              To connect your real Google Drive, add <code className="text-emerald-700 font-mono bg-white px-1 py-0.5 rounded border border-slate-900">GOOGLE_CLIENT_ID</code> and <code className="text-emerald-700 font-mono bg-white px-1 py-0.5 rounded border border-slate-900">GOOGLE_CLIENT_SECRET</code> to your <code className="font-mono text-slate-900">.env.local</code>.
+              You can test right now by clicking below.
             </p>
             <div className="pt-1">
               <Button size="sm" variant="primary" onClick={handleConnect}>
@@ -66,14 +66,14 @@ export function GoogleDriveModal({
         )}
 
         {isConnected && (
-          <div className="flex items-center justify-between p-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-xs">
-            <div className="flex items-center gap-2 text-emerald-300">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+          <div className="flex items-center justify-between p-3 bg-emerald-100 border-2 border-slate-900 rounded-2xl text-xs shadow-pop-sm">
+            <div className="flex items-center gap-2 text-emerald-950 font-bold">
+              <ShieldCheck className="w-4 h-4 text-emerald-600 stroke-[2.5]" />
               <span>Connected to Google Account (Read-only Photos Scope)</span>
             </div>
             <button
               onClick={() => setIsConnected(false)}
-              className="text-[#a1a1aa] hover:text-rose-400 text-[11px] underline"
+              className="text-slate-600 hover:text-rose-600 text-[11px] font-black underline cursor-pointer"
             >
               Disconnect
             </button>
@@ -82,7 +82,7 @@ export function GoogleDriveModal({
 
         {/* Photo Browser Grid */}
         <div className="space-y-2">
-          <label className="text-xs font-semibold text-[#a1a1aa] uppercase tracking-wider block">
+          <label className="text-xs font-black text-slate-900 uppercase tracking-wider block">
             Cloud Photos ({SAMPLE_DRIVE_PHOTOS.length} available)
           </label>
 
@@ -94,29 +94,29 @@ export function GoogleDriveModal({
                 <div
                   key={file.id}
                   onClick={() => setSelectedFile(file)}
-                  className={`group relative rounded-lg border overflow-hidden cursor-pointer transition-all ${
+                  className={`group relative rounded-2xl border-2 border-slate-900 overflow-hidden cursor-pointer transition-all ${
                     isSelected
-                      ? 'border-emerald-500 ring-2 ring-emerald-500/40 glow-emerald-subtle'
-                      : 'border-[#27272a] hover:border-[#3f3f46]'
+                      ? 'shadow-pop ring-2 ring-slate-900 scale-102 bg-amber-100'
+                      : 'shadow-pop-sm hover:-translate-y-0.5 bg-white'
                   }`}
                 >
-                  <div className="aspect-video relative overflow-hidden bg-[#1c1c22]">
+                  <div className="aspect-video relative overflow-hidden bg-slate-100 border-b-2 border-slate-900">
                     <img
                       src={file.thumbnailLink}
                       alt={file.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                     {isSelected && (
-                      <div className="absolute top-2 right-2 w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center text-black">
-                        <Check className="w-3.5 h-3.5 stroke-[3]" />
+                      <div className="absolute top-2 right-2 w-6 h-6 bg-amber-400 border-2 border-slate-900 rounded-full flex items-center justify-center text-slate-950 shadow-2xs">
+                        <Check className="w-4 h-4 stroke-[3]" />
                       </div>
                     )}
                   </div>
-                  <div className="p-2 bg-[#121215]">
-                    <p className="text-xs text-[#f5f5f0] font-medium truncate">
+                  <div className="p-2.5 bg-white">
+                    <p className="text-xs text-slate-900 font-black truncate">
                       {file.name}
                     </p>
-                    <p className="text-[10px] text-[#71717a]">{file.size}</p>
+                    <p className="text-[10px] text-slate-500 font-bold">{file.size}</p>
                   </div>
                 </div>
               );
@@ -125,7 +125,7 @@ export function GoogleDriveModal({
         </div>
 
         {/* Modal Actions */}
-        <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#1c1c22]">
+        <div className="flex items-center justify-end gap-2 pt-3 border-t-2 border-slate-900">
           <Button variant="ghost" onClick={onClose}>
             Cancel
           </Button>
@@ -141,3 +141,4 @@ export function GoogleDriveModal({
     </Modal>
   );
 }
+

@@ -2,22 +2,23 @@
 
 @layer base {
   :root {
-    --atlas-bg: #09090b;
-    --atlas-surface: #121215;
-    --atlas-surface-elevated: #1a1a20;
-    --atlas-surface-hover: #22222a;
-    --atlas-border: #26262e;
-    --atlas-border-subtle: #1c1c22;
-    --atlas-border-focus: #10b981;
-    --atlas-text-primary: #f5f5f0;
-    --atlas-text-secondary: #a1a1aa;
-    --atlas-text-muted: #71717a;
-    --atlas-emerald: #10b981;
-    --atlas-emerald-glow: rgba(16, 185, 129, 0.35);
-    --atlas-gold: #f59e0b;
-    --atlas-violet: #8b5cf6;
-    --atlas-violet-glow: rgba(139, 92, 246, 0.35);
-    --atlas-cyan: #06b6d4;
+    /* ATLAS Official Neo-Pop Design System Colors */
+    --atlas-purple: #6425F5;       /* Electric Purple: Primary brand colour */
+    --atlas-yellow: #FFD45A;       /* Sunflower Yellow: Main panels and highlights */
+    --atlas-red: #F04432;          /* Tomato Red: Discovery and attention */
+    --atlas-cobalt: #326BEE;       /* Cobalt Blue: Secondary interactive */
+    --atlas-cream: #FFF4D9;        /* Warm Cream: Background surfaces */
+    --atlas-black: #171313;        /* Ink Black: Typography and outlines */
+    --atlas-white: #FFFFFF;        /* White: Contrast and content surfaces */
+
+    --atlas-bg: #FFF4D9;
+    --atlas-surface: #FFFFFF;
+    --atlas-surface-elevated: #FFFFFF;
+    --atlas-surface-hover: #FFF9EB;
+    --atlas-border: #171313;
+    --atlas-text-primary: #171313;
+    --atlas-text-secondary: #4A4545;
+    --atlas-text-muted: #827C7C;
   }
 }
 
@@ -27,30 +28,30 @@
 
 html,
 body {
-  background-color: #09090b;
-  color: #f5f5f0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background-color: #FFF4D9;
+  color: #171313;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   overflow-x: hidden;
   height: 100%;
 }
 
-/* Custom Scrollbar */
+/* Custom Friendly Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #09090b;
+  background: #f1f5f9;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #27272a;
+  background: #cbd5e1;
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #3f3f46;
+  background: #94a3b8;
 }
 
 /* Cesium Widget Overrides */
@@ -78,32 +79,188 @@ body {
   transform-origin: bottom left;
 }
 
-/* Glow Utilities */
+/* Playful Glow Utilities */
+.glow-coral {
+  box-shadow: 0 0 24px -2px rgba(249, 115, 22, 0.45);
+}
+
+.glow-coral-subtle {
+  box-shadow: 0 0 12px 0 rgba(249, 115, 22, 0.25);
+}
+
+.glow-amber {
+  box-shadow: 0 0 24px -2px rgba(245, 158, 11, 0.45);
+}
+
+.glow-amber-subtle {
+  box-shadow: 0 0 12px 0 rgba(245, 158, 11, 0.25);
+}
+
+.glow-sky {
+  box-shadow: 0 0 24px -2px rgba(2, 132, 199, 0.4);
+}
+
 .glow-emerald {
-  box-shadow: 0 0 20px -2px rgba(16, 185, 129, 0.4);
+  box-shadow: 0 0 20px -2px rgba(16, 185, 129, 0.35);
 }
 
-.glow-emerald-subtle {
-  box-shadow: 0 0 12px 0 rgba(16, 185, 129, 0.2);
-}
-
-.glow-violet {
-  box-shadow: 0 0 20px -2px rgba(139, 92, 246, 0.4);
-}
-
-.glow-violet-subtle {
-  box-shadow: 0 0 12px 0 rgba(139, 92, 246, 0.2);
-}
-
-.glow-gold {
-  box-shadow: 0 0 20px -2px rgba(245, 158, 11, 0.4);
-}
-
-/* Cinematic Gradient Overlays */
+/* Day Mode Atmosphere Overlays */
 .vignette-radial {
-  background: radial-gradient(circle at center, transparent 40%, rgba(9, 9, 11, 0.85) 100%);
+  background: radial-gradient(circle at center, transparent 50%, rgba(224, 242, 254, 0.45) 100%);
 }
 
 .vignette-bottom {
-  background: linear-gradient(to top, rgba(9, 9, 11, 0.95) 0%, rgba(9, 9, 11, 0.4) 50%, transparent 100%);
+  background: linear-gradient(to top, rgba(248, 250, 252, 0.85) 0%, rgba(248, 250, 252, 0.2) 60%, transparent 100%);
 }
+
+/* Polaroid & Memory Album Card Effects */
+.polaroid-shadow {
+  box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.08), 0 4px 6px -2px rgba(15, 23, 42, 0.04);
+}
+
+.polaroid-tilt-1 {
+  transform: rotate(-1.5deg);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+}
+
+.polaroid-tilt-1:hover {
+  transform: rotate(0deg) scale(1.02);
+  box-shadow: 0 20px 35px -5px rgba(249, 115, 22, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.polaroid-tilt-2 {
+  transform: rotate(1.5deg);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+}
+
+.polaroid-tilt-2:hover {
+  transform: rotate(0deg) scale(1.02);
+  box-shadow: 0 20px 35px -5px rgba(2, 132, 199, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* 21st.dev Shimmer Button Keyframes */
+@keyframes shimmer-slide {
+  to {
+    transform: translate(calc(100cqw - 100%), 0);
+  }
+}
+
+@keyframes spin-around {
+  0% {
+    transform: translateZ(0) rotate(0);
+  }
+  15%, 35% {
+    transform: translateZ(0) rotate(90deg);
+  }
+  65%, 85% {
+    transform: translateZ(0) rotate(270deg);
+  }
+  100% {
+    transform: translateZ(0) rotate(360deg);
+  }
+}
+
+.animate-shimmer-slide {
+  animation: shimmer-slide var(--speed) ease-in-out infinite alternate;
+}
+
+.animate-spin-around {
+  animation: spin-around calc(var(--speed) * 2) infinite linear;
+}
+
+/* ============================================================
+   ATLAS OFFICIAL NEO-POP / BENTO DESIGN SYSTEM
+   Inspired by Reference 01 (Mellow), 02 (Planetono), 03 (Chess Mayhem)
+   Palette: Electric Purple (#6425F5), Sunflower Yellow (#FFD45A),
+   Tomato Red (#F04432), Cobalt Blue (#326BEE), Warm Cream (#FFF4D9), Ink Black (#171313)
+   ============================================================ */
+
+/* Tactile Pop Hard Shadows (Neo-Pop / Bento) */
+.shadow-pop {
+  box-shadow: 3px 3px 0px 0px #171313;
+}
+
+.shadow-pop-sm {
+  box-shadow: 2px 2px 0px 0px #171313;
+}
+
+.shadow-pop-lg {
+  box-shadow: 5px 5px 0px 0px #171313;
+}
+
+.shadow-pop-purple {
+  box-shadow: 4px 4px 0px 0px #6425F5;
+}
+
+.shadow-pop-yellow {
+  box-shadow: 4px 4px 0px 0px #FFD45A;
+}
+
+.shadow-pop-red {
+  box-shadow: 4px 4px 0px 0px #F04432;
+}
+
+.shadow-pop-cobalt {
+  box-shadow: 4px 4px 0px 0px #326BEE;
+}
+
+/* Warm Cream Millimeter Graph Paper Canvas (Reference 01 & 02) */
+.bg-graph-paper,
+.bg-warm-cream-grid {
+  background-color: #FFF4D9;
+  background-image: 
+    linear-gradient(to right, rgba(23, 19, 19, 0.07) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(23, 19, 19, 0.07) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Chess Mayhem-inspired Cobalt Diagonal Dynamic Pattern (Reference 03) */
+.bg-cobalt-pattern {
+  background-color: #326BEE;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.25) 2px, transparent 2px);
+  background-size: 24px 24px;
+}
+
+/* Sunflower Yellow Geometric Pattern */
+.bg-yellow-pattern {
+  background-color: #FFD45A;
+  background-image: radial-gradient(rgba(23, 19, 19, 0.12) 2px, transparent 2px);
+  background-size: 20px 20px;
+}
+
+/* Tactile Click Press Response */
+.press-pop {
+  transition: transform 0.1s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.1s ease;
+}
+
+.press-pop:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0px 0px #171313;
+}
+
+/* Retro Comic Bubble Outline */
+.border-pop {
+  border: 2.5px solid #171313;
+}
+
+/* Hide Next.js Development Tools Indicator / Badge ('N' logo) */
+nextjs-portal,
+[data-nextjs-toast],
+[data-nextjs-portal],
+[data-nextjs-dev-tools-button],
+#nextjs-dev-tools,
+div[data-nextjs-toast],
+next-route-announcer,
+div[data-nextjs-dialog-overlay],
+#next_logo_paint0_linear_1357_10853,
+svg:has(path[stroke*="next_logo"]),
+svg:has(defs #next_logo_paint0_linear_1357_10853),
+button[aria-label="Open Next.js Dev Tools"],
+button[aria-label="Open issues overlay"],
+[data-issue-badge] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+

@@ -4,20 +4,16 @@ import React, { useState } from 'react';
 import { useAtlasStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import {
-  Shield,
   Lock,
   User,
   Sparkles,
   Download,
-  Trash2,
   Cloud,
   Check,
-  AlertTriangle,
-  MapPin,
-  Key,
 } from 'lucide-react';
+import { DoodleSparkle, DoodleUnderline } from '@/components/ui/doodles';
+import { AdventurePeaks } from '@/components/ui/atlas-illustrations';
 
 export default function SettingsPage() {
   const { experiences, locations, wishlistItems } = useAtlasStore();
@@ -62,61 +58,70 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto p-6 max-w-4xl mx-auto space-y-8">
+    <div className="flex-1 overflow-y-auto pt-24 sm:pt-28 pb-24 px-6 max-w-4xl mx-auto space-y-8 w-full bg-warm-cream-grid min-h-screen">
       {/* Header */}
-      <div className="border-b border-[#1c1c22] pb-6">
-        <h1 className="text-2xl font-bold tracking-tight text-[#f5f5f0]">
-          Account & Privacy Settings
-        </h1>
-        <p className="text-xs text-[#a1a1aa] mt-1">
+      <div className="border-b-2 border-[#171313]/15 pb-6">
+        <div className="flex items-center gap-2.5">
+          <AdventurePeaks size={32} />
+          <div>
+            <h1 className="text-3xl font-black tracking-tight text-[#171313] font-sans">
+              Account & Privacy Settings
+            </h1>
+            <DoodleUnderline className="text-[#FFD45A] mt-0.5" />
+          </div>
+          <DoodleSparkle size={20} color="#6425F5" />
+        </div>
+        <p className="text-xs text-[#171313]/70 mt-1.5 font-bold">
           Control your encrypted personal archive, AI discovery preferences, and cloud integrations.
         </p>
       </div>
 
       <form onSubmit={handleSave} className="space-y-6">
         {/* Profile Information */}
-        <div className="p-5 bg-[#121215] border border-[#23232b] rounded-2xl space-y-4">
-          <h3 className="text-sm font-semibold text-[#f5f5f0] flex items-center gap-2">
-            <User className="w-4 h-4 text-emerald-400" />
+        <div className="p-6 bg-white border-2 border-[#171313] rounded-3xl space-y-4 shadow-pop">
+          <h3 className="text-sm font-black text-[#171313] flex items-center gap-2 border-b-2 border-[#171313]/10 pb-3">
+            <User className="w-4 h-4 text-[#6425F5] stroke-[2.5]" />
             Profile Information
           </h3>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
             <Input
               label="Display Name"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
+              className="bg-[#FFF4D9] border-2 border-[#171313] text-[#171313] font-black rounded-2xl shadow-pop-sm"
             />
             <Input
               label="Email Address"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              className="bg-[#FFF4D9] border-2 border-[#171313] text-[#171313] font-black rounded-2xl shadow-pop-sm"
             />
           </div>
         </div>
 
         {/* Privacy & Encryption Defaults */}
-        <div className="p-5 bg-[#121215] border border-[#23232b] rounded-2xl space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-[#f5f5f0] flex items-center gap-2">
-              <Lock className="w-4 h-4 text-emerald-400" />
+        <div className="p-6 bg-white border-2 border-[#171313] rounded-3xl space-y-4 shadow-pop">
+          <div className="flex items-center justify-between border-b-2 border-[#171313]/10 pb-3">
+            <h3 className="text-sm font-black text-[#171313] flex items-center gap-2">
+              <Lock className="w-4 h-4 text-[#F04432] stroke-[2.5]" />
               Privacy & Access Controls
             </h3>
-            <Badge variant="emerald" size="sm">
+            <span className="px-3 py-1 rounded-full text-[10px] font-black bg-emerald-300 text-[#171313] border border-[#171313] shadow-pop-sm">
               Private By Default
-            </Badge>
+            </span>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-3 pt-1">
             <div>
-              <label className="block text-xs font-medium text-[#a1a1aa] uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-black text-[#171313] uppercase tracking-wider mb-1.5">
                 Default Experience Privacy Level
               </label>
               <select
                 value={defaultPrivacy}
                 onChange={(e) => setDefaultPrivacy(e.target.value as any)}
-                className="w-full bg-[#18181f] border border-[#27272a] rounded-lg px-3.5 py-2 text-sm text-[#f5f5f0] focus:outline-none focus:border-emerald-500/70"
+                className="w-full bg-[#FFF4D9] border-2 border-[#171313] rounded-2xl px-4 py-2.5 text-xs text-[#171313] focus:outline-none font-black shadow-pop-sm"
               >
                 <option value="private">Private — Accessible strictly to your authenticated session</option>
                 <option value="unlisted">Unlisted — Accessible only via secret direct token</option>
@@ -124,19 +129,19 @@ export default function SettingsPage() {
               </select>
             </div>
 
-            <label className="flex items-start gap-3 p-3 bg-[#16161c] rounded-xl border border-[#23232b] cursor-pointer">
+            <label className="flex items-start gap-3 p-4 bg-[#FFF4D9] rounded-2xl border-2 border-[#171313] shadow-pop-sm cursor-pointer">
               <input
                 type="checkbox"
                 checked={allowLocation}
                 onChange={(e) => setAllowLocation(e.target.checked)}
-                className="mt-1 rounded border-[#27272a] bg-[#18181f] text-emerald-500 focus:ring-emerald-500/30"
+                className="mt-1 rounded border-2 border-[#171313] text-[#F04432] focus:ring-[#F04432]"
               />
               <div className="text-xs">
-                <span className="font-semibold text-[#f5f5f0] block">
+                <span className="font-black text-[#171313] block">
                   Device Precise Location Permissions
                 </span>
-                <span className="text-[#71717a] text-[11px] mt-0.5 block">
-                  Only query device GPS coordinates when explicitly requested for 'Nearby Discoveries'. Never tracked in background.
+                <span className="text-[#171313]/70 text-[11px] font-bold mt-0.5 block">
+                  Only query device GPS coordinates when explicitly requested for &apos;Nearby Discoveries&apos;. Never tracked in background.
                 </span>
               </div>
             </label>
@@ -144,24 +149,24 @@ export default function SettingsPage() {
         </div>
 
         {/* AI Orion Personalization */}
-        <div className="p-5 bg-[#121215] border border-[#23232b] rounded-2xl space-y-4">
-          <h3 className="text-sm font-semibold text-[#f5f5f0] flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-emerald-400" />
+        <div className="p-6 bg-white border-2 border-[#171313] rounded-3xl space-y-4 shadow-pop">
+          <h3 className="text-sm font-black text-[#171313] flex items-center gap-2 border-b-2 border-[#171313]/10 pb-3">
+            <Sparkles className="w-4 h-4 text-[#6425F5] stroke-[2.5]" />
             Orion AI Personalization
           </h3>
 
-          <label className="flex items-start gap-3 p-3 bg-[#16161c] rounded-xl border border-[#23232b] cursor-pointer">
+          <label className="flex items-start gap-3 p-4 bg-[#FFF4D9] rounded-2xl border-2 border-[#171313] shadow-pop-sm cursor-pointer">
             <input
               type="checkbox"
               checked={aiPersonalization}
               onChange={(e) => setAiPersonalization(e.target.checked)}
-              className="mt-1 rounded border-[#27272a] bg-[#18181f] text-emerald-500 focus:ring-emerald-500/30"
+              className="mt-1 rounded border-2 border-[#171313] text-[#6425F5] focus:ring-[#6425F5]"
             />
             <div className="text-xs">
-              <span className="font-semibold text-[#f5f5f0] block">
+              <span className="font-black text-[#171313] block">
                 Enable Context-Aware Recommendations
               </span>
-              <span className="text-[#71717a] text-[11px] mt-0.5 block">
+              <span className="text-[#171313]/70 text-[11px] font-bold mt-0.5 block">
                 Allow Orion to analyze past ratings, categories, and wishlist items to curate relevant real-world discoveries.
               </span>
             </div>
@@ -169,63 +174,65 @@ export default function SettingsPage() {
         </div>
 
         {/* Cloud & External Services */}
-        <div className="p-5 bg-[#121215] border border-[#23232b] rounded-2xl space-y-4">
-          <h3 className="text-sm font-semibold text-[#f5f5f0] flex items-center gap-2">
-            <Cloud className="w-4 h-4 text-emerald-400" />
+        <div className="p-6 bg-white border-2 border-[#171313] rounded-3xl space-y-4 shadow-pop">
+          <h3 className="text-sm font-black text-[#171313] flex items-center gap-2 border-b-2 border-[#171313]/10 pb-3">
+            <Cloud className="w-4 h-4 text-[#326BEE] stroke-[2.5]" />
             Connected Accounts & Storage
           </h3>
 
-          <div className="p-3 bg-[#16161c] rounded-xl border border-[#23232b] flex items-center justify-between">
+          <div className="p-4 bg-[#FFF4D9] rounded-2xl border-2 border-[#171313] shadow-pop-sm flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-white/5 border border-white/10 text-emerald-400">
-                <Cloud className="w-4 h-4" />
+              <div className="p-2.5 rounded-xl bg-[#326BEE] text-white border border-[#171313]">
+                <Cloud className="w-4 h-4 stroke-[2.5]" />
               </div>
               <div className="text-xs">
-                <p className="font-semibold text-[#f5f5f0]">Google Drive Integration</p>
-                <p className="text-[11px] text-[#71717a]">
+                <p className="font-black text-[#171313]">Google Drive Integration</p>
+                <p className="text-[11px] text-[#171313]/70 font-bold">
                   Import photos and extract original camera & GPS EXIF metadata
                 </p>
               </div>
             </div>
-            <Badge variant="outline" size="sm">
+            <span className="text-[10px] font-black px-3 py-1 rounded-full bg-[#FFD45A] text-[#171313] border border-[#171313] shadow-pop-sm">
               Ready
-            </Badge>
+            </span>
           </div>
         </div>
 
         {/* Data Portability & Export */}
-        <div className="p-5 bg-[#121215] border border-[#23232b] rounded-2xl space-y-4">
-          <h3 className="text-sm font-semibold text-[#f5f5f0] flex items-center gap-2">
-            <Download className="w-4 h-4 text-emerald-400" />
+        <div className="p-6 bg-white border-2 border-[#171313] rounded-3xl space-y-4 shadow-pop">
+          <h3 className="text-sm font-black text-[#171313] flex items-center gap-2 border-b-2 border-[#171313]/10 pb-3">
+            <Download className="w-4 h-4 text-[#F04432] stroke-[2.5]" />
             Data Portability
           </h3>
-          <p className="text-xs text-[#a1a1aa] leading-relaxed">
-            Your data belongs to you. Export your entire journal, verified geographical coordinates, timeline records, and bucket list as a structured JSON file.
+          <p className="text-xs text-[#171313]/70 font-bold leading-relaxed">
+            Your memories belong to you. Export your entire journal, verified geographical coordinates, timeline records, and bucket list as a structured JSON file.
           </p>
-          <Button
+          <button
             type="button"
-            variant="secondary"
-            size="sm"
             onClick={handleExportData}
+            className="px-5 py-2.5 rounded-2xl text-xs font-black text-[#171313] bg-[#FFD45A] border-2 border-[#171313] shadow-pop hover:scale-105 active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer flex items-center gap-2"
           >
-            <Download className="w-3.5 h-3.5" />
+            <Download className="w-4 h-4 stroke-[2.5]" />
             <span>Export Complete Journal (JSON)</span>
-          </Button>
+          </button>
         </div>
 
         {/* Save Bar */}
-        <div className="flex items-center justify-between pt-4 border-t border-[#1c1c22]">
+        <div className="flex items-center justify-between pt-4 border-t-2 border-[#171313]/15">
           {isSaved ? (
-            <span className="text-xs text-emerald-400 font-medium flex items-center gap-1.5 animate-in fade-in">
-              <Check className="w-4 h-4" /> Settings updated successfully
+            <span className="text-xs text-emerald-700 font-black flex items-center gap-1.5 animate-in fade-in bg-emerald-100 px-3 py-1.5 rounded-xl border border-emerald-600">
+              <Check className="w-4 h-4 stroke-[3]" /> Settings updated successfully
             </span>
           ) : (
             <span />
           )}
 
-          <Button type="submit" variant="primary">
+          <button
+            type="submit"
+            className="px-6 py-3 rounded-2xl text-xs font-black text-white bg-[#F04432] border-2 border-[#171313] shadow-pop hover:scale-105 active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer"
+          >
             Save Preferences
-          </Button>
+          </button>
         </div>
       </form>
     </div>

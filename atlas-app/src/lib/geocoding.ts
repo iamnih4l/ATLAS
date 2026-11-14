@@ -204,3 +204,4 @@ function getOfflinePlaceMatches(query: string): GeocodingResult[] {
       p.display_name.toLowerCase().includes(q)
   );
 }
+

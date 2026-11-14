@@ -14,24 +14,24 @@ export function Badge({
   ...props
 }: BadgeProps) {
   const variants = {
-    default: 'bg-[#1e1e24] text-[#d4d4d8] border border-[#27272a]',
-    emerald: 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/30',
-    amber: 'bg-amber-500/10 text-amber-300 border border-amber-500/30',
-    violet: 'bg-violet-500/10 text-violet-300 border border-violet-500/30',
-    cyan: 'bg-cyan-500/10 text-cyan-300 border border-cyan-500/30',
-    rose: 'bg-rose-500/10 text-rose-300 border border-rose-500/30',
-    outline: 'bg-transparent text-[#a1a1aa] border border-[#3f3f46]',
+    default: 'bg-slate-100 text-slate-700 border border-slate-200/80 font-semibold',
+    emerald: 'bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold',
+    amber: 'bg-amber-50 text-amber-800 border border-amber-200 font-bold',
+    violet: 'bg-violet-50 text-violet-700 border border-violet-200 font-bold',
+    cyan: 'bg-sky-50 text-sky-700 border border-sky-200 font-bold',
+    rose: 'bg-rose-50 text-rose-700 border border-rose-200 font-bold',
+    outline: 'bg-white text-slate-600 border border-slate-200 font-medium',
   };
 
   const sizes = {
-    sm: 'text-[10px] px-2 py-0.5 font-medium tracking-wide',
-    md: 'text-xs px-2.5 py-1 font-medium',
+    sm: 'text-[10px] px-2 py-0.5 tracking-wide',
+    md: 'text-xs px-2.5 py-1',
   };
 
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1 rounded-full whitespace-nowrap transition-colors',
+        'inline-flex items-center gap-1 rounded-full whitespace-nowrap transition-colors shadow-2xs',
         variants[variant],
         sizes[size],
         className

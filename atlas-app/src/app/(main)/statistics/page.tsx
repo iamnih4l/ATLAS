@@ -2,7 +2,6 @@
 
 import React, { useMemo } from 'react';
 import { useAtlasStore } from '@/lib/store';
-import { Badge } from '@/components/ui/badge';
 import { StarRating } from '@/components/ui/star-rating';
 import {
   BarChart,
@@ -18,17 +17,17 @@ import {
 import {
   Globe,
   MapPin,
-  Camera,
   Star,
   Award,
-  Calendar,
   BookmarkCheck,
-  TrendingUp,
   Compass,
+  Sparkles,
 } from 'lucide-react';
+import { DoodleSparkle, DoodleUnderline } from '@/components/ui/doodles';
+import { PlayfulCompass, VerifiedStamp } from '@/components/ui/atlas-illustrations';
 
 export default function StatisticsPage() {
-  const { experiences, locations, wishlistItems, categories } = useAtlasStore();
+  const { experiences, wishlistItems, categories } = useAtlasStore();
 
   // 1. Core aggregates calculated directly from records
   const stats = useMemo(() => {
@@ -73,16 +72,6 @@ export default function StatisticsPage() {
       value,
     }));
 
-    // Experiences by year
-    const yearCounts: { [k: string]: number } = {};
-    experiences.forEach((e) => {
-      const yr = new Date(e.date).getFullYear().toString();
-      yearCounts[yr] = (yearCounts[yr] || 0) + 1;
-    });
-    const yearChartData = Object.entries(yearCounts)
-      .map(([year, count]) => ({ year, count }))
-      .sort((a, b) => parseInt(a.year) - parseInt(b.year));
-
     // Wishlist ratio
     const completedWishlist = wishlistItems.filter((w) => w.is_completed).length;
     const activeWishlist = wishlistItems.filter((w) => !w.is_completed).length;
@@ -96,174 +85,200 @@ export default function StatisticsPage() {
       highestRated,
       countryChartData,
       categoryChartData,
-      yearChartData,
       completedWishlist,
       activeWishlist,
-      totalPhotos: totalExp * 2 + 3, // based on attached records
     };
-  }, [experiences, locations, wishlistItems, categories]);
+  }, [experiences, wishlistItems, categories]);
 
-  const COLORS = ['#10b981', '#06b6d4', '#8b5cf6', '#f59e0b', '#ec4899', '#3b82f6'];
+  const COLORS = ['#6425F5', '#FFD45A', '#F04432', '#326BEE', '#10b981', '#f59e0b'];
 
   return (
-    <div className="flex-1 overflow-y-auto p-6 max-w-7xl mx-auto space-y-8">
+    <div className="flex-1 overflow-y-auto pt-24 sm:pt-28 pb-24 px-6 max-w-7xl mx-auto space-y-8 w-full bg-warm-cream-grid min-h-screen">
       {/* Page Header */}
-      <div className="border-b border-[#1c1c22] pb-6">
-        <h1 className="text-2xl font-bold tracking-tight text-[#f5f5f0]">
-          Personal Travel & Life Statistics
-        </h1>
-        <p className="text-xs text-[#a1a1aa] mt-1">
-          Synthesized insights and metrics derived from your verified geographical memories.
+      <div className="border-b-2 border-[#171313]/15 pb-6">
+        <div className="flex items-center gap-2.5">
+          <PlayfulCompass size={32} />
+          <div>
+            <h1 className="text-3xl font-black tracking-tight text-[#171313] font-sans">
+              Personal Travel & Life Stats
+            </h1>
+            <DoodleUnderline className="text-[#FFD45A] mt-0.5" />
+          </div>
+          <DoodleSparkle size={20} color="#6425F5" />
+        </div>
+        <p className="text-xs text-[#171313]/70 mt-1.5 font-bold">
+          Synthesized insights and milestones derived from your verified memories.
         </p>
       </div>
 
       {/* Top Stat Cards Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5">
-        <div className="p-4 bg-[#121215] border border-[#23232b] rounded-2xl flex flex-col justify-between">
-          <div className="flex items-center justify-between text-[#71717a]">
-            <span className="text-[11px] font-medium uppercase tracking-wider">Memories</span>
-            <Award className="w-4 h-4 text-emerald-400" />
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="p-4 bg-[#FFD45A] border-2 border-[#171313] rounded-3xl flex flex-col justify-between shadow-pop hover:scale-105 transition-transform">
+          <div className="flex items-center justify-between text-[#171313]">
+            <span className="text-[11px] font-black uppercase tracking-wider">Memories</span>
+            <Award className="w-4 h-4 stroke-[2.5]" />
           </div>
-          <p className="text-2xl font-bold text-[#f5f5f0] mt-2">{stats.totalExp}</p>
+          <p className="text-3xl font-black text-[#171313] mt-2">{stats.totalExp}</p>
         </div>
 
-        <div className="p-4 bg-[#121215] border border-[#23232b] rounded-2xl flex flex-col justify-between">
-          <div className="flex items-center justify-between text-[#71717a]">
-            <span className="text-[11px] font-medium uppercase tracking-wider">Countries</span>
-            <Globe className="w-4 h-4 text-cyan-400" />
+        <div className="p-4 bg-[#326BEE] text-white border-2 border-[#171313] rounded-3xl flex flex-col justify-between shadow-pop hover:scale-105 transition-transform">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-black uppercase tracking-wider opacity-90">Countries</span>
+            <Globe className="w-4 h-4 stroke-[2.5]" />
           </div>
-          <p className="text-2xl font-bold text-[#f5f5f0] mt-2">{stats.countriesCount}</p>
+          <p className="text-3xl font-black mt-2">{stats.countriesCount}</p>
         </div>
 
-        <div className="p-4 bg-[#121215] border border-[#23232b] rounded-2xl flex flex-col justify-between">
-          <div className="flex items-center justify-between text-[#71717a]">
-            <span className="text-[11px] font-medium uppercase tracking-wider">Cities</span>
-            <MapPin className="w-4 h-4 text-teal-400" />
+        <div className="p-4 bg-[#F04432] text-white border-2 border-[#171313] rounded-3xl flex flex-col justify-between shadow-pop hover:scale-105 transition-transform">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-black uppercase tracking-wider opacity-90">Cities</span>
+            <MapPin className="w-4 h-4 stroke-[2.5]" />
           </div>
-          <p className="text-2xl font-bold text-[#f5f5f0] mt-2">{stats.citiesCount}</p>
+          <p className="text-3xl font-black mt-2">{stats.citiesCount}</p>
         </div>
 
-        <div className="p-4 bg-[#121215] border border-[#23232b] rounded-2xl flex flex-col justify-between">
-          <div className="flex items-center justify-between text-[#71717a]">
-            <span className="text-[11px] font-medium uppercase tracking-wider">Locations</span>
-            <Compass className="w-4 h-4 text-indigo-400" />
+        <div className="p-4 bg-[#6425F5] text-white border-2 border-[#171313] rounded-3xl flex flex-col justify-between shadow-pop hover:scale-105 transition-transform">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-black uppercase tracking-wider opacity-90">Locations</span>
+            <Compass className="w-4 h-4 stroke-[2.5]" />
           </div>
-          <p className="text-2xl font-bold text-[#f5f5f0] mt-2">{stats.uniqueLocsCount}</p>
+          <p className="text-3xl font-black mt-2">{stats.uniqueLocsCount}</p>
         </div>
 
-        <div className="p-4 bg-[#121215] border border-[#23232b] rounded-2xl flex flex-col justify-between">
-          <div className="flex items-center justify-between text-[#71717a]">
-            <span className="text-[11px] font-medium uppercase tracking-wider">Avg Rating</span>
-            <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+        <div className="p-4 bg-white border-2 border-[#171313] rounded-3xl flex flex-col justify-between shadow-pop hover:scale-105 transition-transform">
+          <div className="flex items-center justify-between text-[#171313]">
+            <span className="text-[11px] font-black uppercase tracking-wider text-[#171313]/70">Avg Rating</span>
+            <Star className="w-4 h-4 text-[#FFD45A] fill-[#FFD45A]" />
           </div>
-          <p className="text-2xl font-bold text-[#f5f5f0] mt-2">{stats.avgRating.toFixed(1)}</p>
+          <p className="text-3xl font-black text-[#171313] mt-2">{stats.avgRating.toFixed(1)}</p>
         </div>
 
-        <div className="p-4 bg-[#121215] border border-[#23232b] rounded-2xl flex flex-col justify-between">
-          <div className="flex items-center justify-between text-[#71717a]">
-            <span className="text-[11px] font-medium uppercase tracking-wider">Wishlist</span>
-            <BookmarkCheck className="w-4 h-4 text-violet-400" />
+        <div className="p-4 bg-emerald-400 text-[#171313] border-2 border-[#171313] rounded-3xl flex flex-col justify-between shadow-pop hover:scale-105 transition-transform">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-black uppercase tracking-wider">Wishlist</span>
+            <BookmarkCheck className="w-4 h-4 stroke-[2.5]" />
           </div>
-          <p className="text-2xl font-bold text-[#f5f5f0] mt-2">{stats.activeWishlist}</p>
+          <p className="text-3xl font-black mt-2">{stats.activeWishlist}</p>
         </div>
       </div>
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Most Visited Countries */}
-        <div className="p-5 bg-[#121215] border border-[#23232b] rounded-2xl space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-[#f5f5f0] flex items-center gap-2">
-              <Globe className="w-4 h-4 text-emerald-400" />
+        <div className="p-6 bg-white border-2 border-[#171313] rounded-3xl space-y-4 shadow-pop">
+          <div className="flex items-center justify-between border-b-2 border-[#171313]/10 pb-3">
+            <h3 className="text-sm font-black text-[#171313] flex items-center gap-2">
+              <Globe className="w-4 h-4 text-[#F04432] stroke-[2.5]" />
               Most Explored Countries
             </h3>
-            <Badge variant="emerald" size="sm">
-              Live Database
-            </Badge>
+            <span className="px-3 py-1 rounded-full text-[10px] font-black bg-[#FFD45A] text-[#171313] border border-[#171313] shadow-pop-sm">
+              Live Data
+            </span>
           </div>
 
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={stats.countryChartData} layout="vertical" margin={{ left: 10, right: 10 }}>
-                <XAxis type="number" stroke="#52525b" fontSize={11} />
-                <YAxis dataKey="country" type="category" stroke="#a1a1aa" fontSize={11} width={110} />
-                <Tooltip
-                  contentStyle={{ backgroundColor: '#18181f', borderColor: '#27272a', borderRadius: '8px' }}
-                  itemStyle={{ color: '#10b981' }}
-                />
-                <Bar dataKey="count" fill="#10b981" radius={[0, 6, 6, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="h-64 w-full pt-2">
+            {stats.countryChartData.length === 0 ? (
+              <div className="h-full flex items-center justify-center text-[#171313]/50 text-xs font-bold">
+                No countries logged yet. Record an experience to see live analytics!
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={stats.countryChartData} layout="vertical" margin={{ left: 10, right: 10 }}>
+                  <XAxis type="number" stroke="#171313" fontSize={11} fontWeight={700} />
+                  <YAxis dataKey="country" type="category" stroke="#171313" fontSize={11} fontWeight={800} width={110} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#FFF4D9', borderColor: '#171313', borderWidth: '2px', borderRadius: '16px', boxShadow: '3px 3px 0px #171313' }}
+                    itemStyle={{ color: '#171313', fontWeight: 900 }}
+                  />
+                  <Bar dataKey="count" fill="#F04432" stroke="#171313" strokeWidth={2} radius={[0, 8, 8, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
 
         {/* Activity Categories Distribution */}
-        <div className="p-5 bg-[#121215] border border-[#23232b] rounded-2xl space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-[#f5f5f0] flex items-center gap-2">
-              <Compass className="w-4 h-4 text-cyan-400" />
+        <div className="p-6 bg-white border-2 border-[#171313] rounded-3xl space-y-4 shadow-pop">
+          <div className="flex items-center justify-between border-b-2 border-[#171313]/10 pb-3">
+            <h3 className="text-sm font-black text-[#171313] flex items-center gap-2">
+              <Compass className="w-4 h-4 text-[#326BEE] stroke-[2.5]" />
               Experience Categories
             </h3>
-            <Badge variant="cyan" size="sm">
+            <span className="px-3 py-1 rounded-full text-[10px] font-black bg-[#326BEE] text-white border border-[#171313] shadow-pop-sm">
               Breakdown
-            </Badge>
+            </span>
           </div>
 
-          <div className="h-64 w-full flex items-center justify-center">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={stats.categoryChartData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={55}
-                  outerRadius={85}
-                  paddingAngle={4}
-                  dataKey="value"
-                >
-                  {stats.categoryChartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{ backgroundColor: '#18181f', borderColor: '#27272a', borderRadius: '8px' }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+          <div className="h-64 w-full flex items-center justify-center pt-2">
+            {stats.categoryChartData.length === 0 ? (
+              <div className="h-full flex items-center justify-center text-[#171313]/50 text-xs font-bold">
+                No category breakdown yet.
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={stats.categoryChartData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={55}
+                    outerRadius={85}
+                    paddingAngle={4}
+                    stroke="#171313"
+                    strokeWidth={2}
+                    dataKey="value"
+                  >
+                    {stats.categoryChartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#FFF4D9', borderColor: '#171313', borderWidth: '2px', borderRadius: '16px', boxShadow: '3px 3px 0px #171313' }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
       </div>
 
       {/* Highest Rated Experiences Showcase */}
-      <div className="p-5 bg-[#121215] border border-[#23232b] rounded-2xl space-y-4">
-        <h3 className="text-sm font-semibold text-[#f5f5f0] flex items-center gap-2">
-          <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
-          Highest Rated Experiences
+      <div className="p-6 bg-white border-2 border-[#171313] rounded-3xl space-y-4 shadow-pop">
+        <h3 className="text-sm font-black text-[#171313] flex items-center gap-2 border-b-2 border-[#171313]/10 pb-3">
+          <Star className="w-4 h-4 text-[#FFD45A] fill-[#FFD45A]" />
+          Highest Rated Memories
         </h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {stats.highestRated.map((exp) => (
-            <div
-              key={exp.id}
-              className="p-3.5 bg-[#16161c] border border-[#23232b] rounded-xl flex items-center gap-3"
-            >
-              <div className="w-14 h-14 rounded-lg overflow-hidden bg-[#1f1f26] shrink-0">
-                <img
-                  src={exp.cover_image_url || 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=300&q=80'}
-                  alt={exp.title}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="min-w-0">
-                <h4 className="text-xs font-semibold text-[#f5f5f0] truncate">{exp.title}</h4>
-                <p className="text-[11px] text-[#71717a] truncate mt-0.5">{exp.location?.name}</p>
-                <div className="mt-1">
-                  <StarRating value={exp.rating} readOnly size="sm" showNumber />
+        {stats.highestRated.length === 0 ? (
+          <div className="py-8 text-center text-[#171313]/50 text-xs font-bold">
+            Rate your experiences with stars to see your top milestones featured here!
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
+            {stats.highestRated.map((exp) => (
+              <div
+                key={exp.id}
+                className="p-3.5 bg-[#FFF4D9] border-2 border-[#171313] rounded-2xl flex items-center gap-3.5 shadow-pop-sm hover:shadow-pop transition-all"
+              >
+                <div className="w-16 h-16 rounded-xl overflow-hidden bg-[#171313] shrink-0 border-2 border-[#171313]">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={exp.cover_image_url || 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=300&q=80'}
+                    alt={exp.title}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h4 className="text-xs font-black text-[#171313] truncate">{exp.title}</h4>
+                  <p className="text-[11px] text-[#171313]/70 font-bold truncate mt-0.5">{exp.location?.name}</p>
+                  <div className="mt-1">
+                    <StarRating value={exp.rating} readOnly size="sm" showNumber />
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { searchPlaces, GeocodingResult } from '@/lib/geocoding';
 import { extractExifFromPhoto, PhotoLocationSuggestion } from '@/lib/exif-extractor';
 import { GoogleDriveModal } from './google-drive-modal';
+import { cn } from '@/lib/utils';
 import { Experience, Location } from '@/types';
 import {
   MapPin,
@@ -26,7 +27,10 @@ import {
   AlertCircle,
   Cloud,
   Check,
+  Smile,
 } from 'lucide-react';
+import { TRAVEL_MOODS, JoyBlob, StarSpike, WanderBlob, ChillCloud, SunDoodle } from '@/components/ui/mascot-doodles';
+import { WashiTape, PassportStamp } from '@/components/ui/doodles';
 
 export function ExperienceModal() {
   const {
@@ -36,6 +40,8 @@ export function ExperienceModal() {
     setEditingExperience,
     convertingWishlistToExperience,
     setConvertingWishlistToExperience,
+    pendingLocation,
+    setPendingLocation,
     addExperience,
     updateExperience,
     deleteExperience,
@@ -56,6 +62,7 @@ export function ExperienceModal() {
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
   const [coverImageUrl, setCoverImageUrl] = useState('');
+  const [selectedMood, setSelectedMood] = useState<string>('joy');
 
   // Location Fields
   const [locationName, setLocationName] = useState('');
@@ -124,10 +131,22 @@ export function ExperienceModal() {
         setLongitude(loc.longitude);
         setPlaceId(loc.place_id);
       }
+    } else if (pendingLocation) {
+      // Pre-filled from clicking directly on 3D Earth!
+      setLocationName(pendingLocation.name || 'Selected Point on Earth');
+      setCity(pendingLocation.city || '');
+      setCountry(pendingLocation.country || '');
+      setVenue(pendingLocation.venue || '');
+      setLatitude(pendingLocation.latitude);
+      setLongitude(pendingLocation.longitude);
+      setTitle(pendingLocation.name ? `Trip to ${pendingLocation.name}` : '');
+      setDate(new Date().toISOString().split('T')[0]);
+      setRating(5.0);
+      setCategoryId('1');
     } else {
       resetForm();
     }
-  }, [editingExperience, convertingWishlistToExperience, isExperienceModalOpen]);
+  }, [editingExperience, convertingWishlistToExperience, pendingLocation, isExperienceModalOpen]);
 
   const resetForm = () => {
     setTitle('');
@@ -138,6 +157,7 @@ export function ExperienceModal() {
     setPrivacy('private');
     setNotes('');
     setTags([]);
+    setSelectedMood('joy');
     setCoverImageUrl('');
     setLocationName('');
     setCity('');
@@ -156,6 +176,7 @@ export function ExperienceModal() {
     setExperienceModalOpen(false);
     setEditingExperience(null);
     setConvertingWishlistToExperience(null);
+    setPendingLocation(null);
     resetForm();
   };
 
@@ -351,18 +372,38 @@ export function ExperienceModal() {
         description="Preserve your real-world journey with verified coordinates, photographs and notes."
         maxWidth="2xl"
       >
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Step Indicator Pills inspired by PLANETON O */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 text-[11px] font-black">
+            <span className="px-3 py-1 rounded-full bg-amber-400 text-slate-950 border-2 border-slate-900 shadow-pop-sm inline-flex items-center gap-1.5 shrink-0">
+              <span className="w-4 h-4 rounded-full bg-slate-950 text-amber-400 flex items-center justify-center text-[10px]">1</span>
+              <span>Coordinates</span>
+            </span>
+            <span className="px-3 py-1 rounded-full bg-white text-slate-800 border-2 border-slate-900 shadow-pop-sm inline-flex items-center gap-1.5 shrink-0">
+              <span className="w-4 h-4 rounded-full bg-slate-200 text-slate-800 flex items-center justify-center text-[10px]">2</span>
+              <span>Memory Story</span>
+            </span>
+            <span className="px-3 py-1 rounded-full bg-white text-slate-800 border-2 border-slate-900 shadow-pop-sm inline-flex items-center gap-1.5 shrink-0">
+              <span className="w-4 h-4 rounded-full bg-slate-200 text-slate-800 flex items-center justify-center text-[10px]">3</span>
+              <span>Vibe & Mascot</span>
+            </span>
+            <span className="px-3 py-1 rounded-full bg-white text-slate-800 border-2 border-slate-900 shadow-pop-sm inline-flex items-center gap-1.5 shrink-0">
+              <span className="w-4 h-4 rounded-full bg-slate-200 text-slate-800 flex items-center justify-center text-[10px]">4</span>
+              <span>Polaroid</span>
+            </span>
+          </div>
+
           {/* EXIF GPS Suggestion Banner */}
           {exifSuggestion && (
-            <div className="p-3.5 bg-emerald-950/40 border border-emerald-500/40 rounded-xl space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
-              <div className="flex items-start gap-2.5 text-xs text-emerald-200">
-                <Sparkles className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+            <div className="p-3.5 bg-amber-100 border-2 border-slate-900 rounded-2xl space-y-2 shadow-pop-sm animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="flex items-start gap-2.5 text-xs text-amber-950">
+                <Sparkles className="w-4 h-4 text-amber-600 stroke-[2.5] shrink-0 mt-0.5" />
                 <div className="flex-1">
-                  <p className="font-semibold text-emerald-300">
+                  <p className="font-black text-slate-900">
                     GPS Coordinates Detected in Photo!
                   </p>
-                  <p className="text-[11px] text-emerald-200/80 mt-0.5">
-                    Found location: <span className="font-medium text-white">{exifSuggestion.name}</span>
+                  <p className="text-[11px] text-amber-900 mt-0.5 font-bold">
+                    Found location: <span className="underline decoration-2">{exifSuggestion.name}</span>
                     {exifSuggestion.date && ` • Taken: ${exifSuggestion.date}`}
                   </p>
                 </div>
@@ -393,7 +434,7 @@ export function ExperienceModal() {
             <div className="md:col-span-2">
               <Input
                 label="Experience Title *"
-                placeholder="e.g. Tandem Skydive over the Palm"
+                placeholder="e.g. Sunrise Hot Air Ballooning in Cappadocia"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 required
@@ -412,43 +453,43 @@ export function ExperienceModal() {
           </div>
 
           {/* Section: Location Selection with Real Geocoding */}
-          <div className="p-4 bg-[#0e0e12] border border-[#27272a] rounded-xl space-y-3">
+          <div className="p-4 bg-white border-2 border-slate-900 rounded-2xl space-y-3 shadow-pop-sm">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-[#a1a1aa] uppercase tracking-wider flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5 text-emerald-400" />
+              <label className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 text-rose-500 stroke-[2.5]" />
                 Real-World Location *
               </label>
               {latitude !== null && longitude !== null && (
-                <Badge variant="emerald" size="sm">
-                  Verified Coordinates: {latitude.toFixed(4)}, {longitude.toFixed(4)}
-                </Badge>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-slate-900 shadow-2xs">
+                  GPS: {latitude.toFixed(4)}, {longitude.toFixed(4)}
+                </span>
               )}
             </div>
 
             {/* Location Search Bar */}
             <div className="relative">
               <Input
-                placeholder="Search real venue or landmark (e.g. Skydive Dubai, Niagara Falls, Eiffel Tower)…"
+                placeholder="Search real venue or landmark (e.g. Skydive Dubai, Kyoto Fushimi Inari, Taj Mahal)…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onFocus={() => searchResults.length > 0 && setShowSearchResults(true)}
-                leftIcon={<Search className="w-4 h-4 text-emerald-400" />}
+                leftIcon={<Search className="w-4 h-4 text-amber-500 stroke-[2.5]" />}
               />
 
               {/* Autocomplete Dropdown */}
               {showSearchResults && searchResults.length > 0 && (
-                <div className="absolute left-0 right-0 top-full mt-1.5 bg-[#141418] border border-[#2a2a32] rounded-xl shadow-2xl z-30 max-h-56 overflow-y-auto">
+                <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border-2 border-slate-900 rounded-2xl shadow-pop-lg z-30 max-h-56 overflow-y-auto">
                   {searchResults.map((place) => (
                     <div
                       key={place.place_id}
                       onClick={() => selectPlace(place)}
-                      className="p-2.5 hover:bg-[#1f1f26] cursor-pointer border-b border-[#1c1c22] last:border-none transition-colors"
+                      className="p-3 hover:bg-amber-100/60 cursor-pointer border-b border-slate-200 last:border-none transition-colors"
                     >
-                      <p className="text-xs font-medium text-[#f5f5f0] flex items-center gap-1.5">
-                        <MapPin className="w-3 h-3 text-emerald-400 shrink-0" />
+                      <p className="text-xs font-black text-slate-900 flex items-center gap-1.5">
+                        <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0 stroke-[2.5]" />
                         {place.name}
                       </p>
-                      <p className="text-[11px] text-[#71717a] mt-0.5 truncate pl-4.5">
+                      <p className="text-[11px] text-slate-600 mt-0.5 truncate pl-5 font-medium">
                         {place.display_name}
                       </p>
                     </div>
@@ -459,10 +500,10 @@ export function ExperienceModal() {
 
             {/* Selected Location Pill */}
             {locationName ? (
-              <div className="p-3 bg-[#16161b] rounded-lg border border-[#23232b] flex items-center justify-between text-xs">
+              <div className="p-3 bg-amber-50 rounded-xl border-2 border-slate-900 flex items-center justify-between text-xs shadow-pop-sm">
                 <div>
-                  <p className="font-semibold text-[#f5f5f0]">{locationName}</p>
-                  <p className="text-[11px] text-[#71717a]">
+                  <p className="font-black text-slate-900">{locationName}</p>
+                  <p className="text-[11px] text-slate-600 font-bold">
                     {[venue, city, country].filter(Boolean).join(' • ')}
                   </p>
                 </div>
@@ -473,14 +514,14 @@ export function ExperienceModal() {
                     setLatitude(null);
                     setLongitude(null);
                   }}
-                  className="text-[#71717a] hover:text-rose-400 p-1"
+                  className="text-slate-900 hover:text-rose-600 p-1 cursor-pointer"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-4 h-4 stroke-[2.5]" />
                 </button>
               </div>
             ) : (
-              <p className="text-[11px] text-[#52525b] italic">
-                No location chosen yet. Type in search bar above to geocode exact coordinates.
+              <p className="text-[11px] text-slate-500 italic font-medium">
+                No location chosen yet. Type above to verify real geographical coordinates.
               </p>
             )}
           </div>
@@ -488,13 +529,13 @@ export function ExperienceModal() {
           {/* Section: Category & Rating */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-[#a1a1aa] uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-black text-slate-900 uppercase tracking-wider mb-1.5">
                 Category
               </label>
               <select
                 value={categoryId}
                 onChange={(e) => setCategoryId(e.target.value)}
-                className="w-full bg-[#121215] border border-[#27272a] rounded-lg px-3.5 py-2 text-sm text-[#f5f5f0] focus:outline-none focus:border-emerald-500/70"
+                className="w-full bg-white border-2 border-slate-900 rounded-xl px-3.5 py-2 text-sm text-slate-900 focus:outline-none shadow-pop-sm font-bold cursor-pointer"
               >
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -505,7 +546,7 @@ export function ExperienceModal() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-[#a1a1aa] uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-black text-slate-900 uppercase tracking-wider mb-1.5">
                 Personal Rating (0.5 – 5.0)
               </label>
               <div className="pt-1">
@@ -519,11 +560,42 @@ export function ExperienceModal() {
             </div>
           </div>
 
+          {/* Interactive Mood & Vibe Selector inspired by Suntera */}
+          <div className="p-4 bg-white border-2 border-slate-900 rounded-2xl space-y-2.5 shadow-pop-sm">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                <Smile className="w-3.5 h-3.5 text-amber-500 stroke-[2.5]" />
+                What Was The Mood / Vibe? (Inspired by Suntera)
+              </label>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+              {TRAVEL_MOODS.map((m) => {
+                const isSelected = selectedMood === m.id;
+                return (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => setSelectedMood(m.id)}
+                    className={cn(
+                      'p-2.5 rounded-2xl border-2 border-slate-900 flex flex-col items-center justify-center gap-1 transition-all cursor-pointer',
+                      isSelected
+                        ? `${m.color} ${m.textColor} shadow-pop scale-105 font-black`
+                        : 'bg-white text-slate-700 hover:bg-slate-50 font-bold shadow-2xs'
+                    )}
+                  >
+                    {m.mascot}
+                    <span className="text-[11px] mt-0.5">{m.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Section: Description */}
           <Textarea
-            label="Personal Description & Story"
-            placeholder="Tell the story of this memory. How did it feel? What did you see? Who were you with?"
-            rows={4}
+            label="Personal Description & Travel Story"
+            placeholder="Tell the story of this memory. How did it feel? What did you smell, taste, or see? Who was there with you?"
+            rows={3}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />
@@ -531,9 +603,9 @@ export function ExperienceModal() {
           {/* Section: Photos & Media Management */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-[#a1a1aa] uppercase tracking-wider flex items-center gap-1.5">
-                <Camera className="w-3.5 h-3.5 text-emerald-400" />
-                Photographs & Media
+              <label className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                <Camera className="w-3.5 h-3.5 text-emerald-600 stroke-[2.5]" />
+                Photographs & Polaroid Media
               </label>
 
               <Button
@@ -542,49 +614,57 @@ export function ExperienceModal() {
                 size="sm"
                 onClick={() => setIsDriveModalOpen(true)}
               >
-                <Cloud className="w-3 h-3 text-emerald-400" />
+                <Cloud className="w-3 h-3 text-emerald-600" />
                 Import from Drive
               </Button>
             </div>
 
-            {/* Photo Preview or Dropzone */}
+            {/* Photo Preview with Polaroid Washi Tape Frame */}
             {coverImageUrl ? (
-              <div className="relative rounded-xl overflow-hidden aspect-video max-h-48 border border-[#27272a] group">
-                <img
-                  src={coverImageUrl}
-                  alt="Cover"
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    Change Photo
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="danger"
-                    onClick={() => setCoverImageUrl('')}
-                  >
-                    Remove
-                  </Button>
+              <div className="relative p-3 bg-white border-2 border-slate-900 rounded-2xl shadow-pop-sm group max-w-sm mx-auto">
+                {/* Washi Tape Strip */}
+                <WashiTape className="absolute -top-3 left-1/2 -translate-x-1/2 z-20" rotate="-2deg" color="bg-amber-300/90" />
+                <div className="relative rounded-xl overflow-hidden aspect-video border-2 border-slate-900">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={coverImageUrl}
+                    alt="Cover"
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      Change Photo
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="danger"
+                      onClick={() => setCoverImageUrl('')}
+                    >
+                      Remove
+                    </Button>
+                  </div>
                 </div>
+                <p className="text-center text-[10px] font-black text-slate-500 mt-2 font-serif uppercase tracking-widest">
+                  ★ TRAVEL SNAPSHOT ★
+                </p>
               </div>
             ) : (
               <div
                 onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-[#27272a] hover:border-emerald-500/50 rounded-xl p-6 text-center cursor-pointer transition-colors bg-[#0e0e12]"
+                className="border-2 border-dashed border-slate-900 hover:bg-amber-50/50 rounded-2xl p-6 text-center cursor-pointer transition-colors bg-white shadow-pop-sm"
               >
-                <Upload className="w-6 h-6 text-[#71717a] mx-auto mb-2" />
-                <p className="text-xs text-[#f5f5f0] font-medium">
-                  Upload a photograph or drag and drop
+                <Upload className="w-6 h-6 text-amber-500 mx-auto mb-2 stroke-[2.5]" />
+                <p className="text-xs text-slate-900 font-black">
+                  Upload a travel photo or drag and drop
                 </p>
-                <p className="text-[11px] text-[#71717a] mt-1">
-                  Supports JPG, PNG, WebP, HEIC • Auto-extracts GPS & Date EXIF
+                <p className="text-[11px] text-slate-600 mt-1 font-medium">
+                  Auto-extracts GPS Coordinates & Date from EXIF headers
                 </p>
               </div>
             )}
@@ -601,8 +681,8 @@ export function ExperienceModal() {
           {/* Section: Tags & Notes */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-[#a1a1aa] uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                <TagIcon className="w-3.5 h-3.5" /> Tags
+              <label className="block text-xs font-black text-slate-900 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                <TagIcon className="w-3.5 h-3.5 text-amber-500 stroke-[2.5]" /> Tags
               </label>
               <Input
                 placeholder="Press Enter to add tag"
@@ -617,7 +697,7 @@ export function ExperienceModal() {
                     <button
                       type="button"
                       onClick={() => removeTag(t)}
-                      className="ml-1 hover:text-rose-400"
+                      className="ml-1 hover:text-rose-500 cursor-pointer"
                     >
                       ×
                     </button>
@@ -627,13 +707,13 @@ export function ExperienceModal() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-[#a1a1aa] uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                <Lock className="w-3.5 h-3.5" /> Privacy
+              <label className="block text-xs font-black text-slate-900 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                <Lock className="w-3.5 h-3.5 text-slate-500 stroke-[2.5]" /> Privacy
               </label>
               <select
                 value={privacy}
                 onChange={(e) => setPrivacy(e.target.value as any)}
-                className="w-full bg-[#121215] border border-[#27272a] rounded-lg px-3.5 py-2 text-sm text-[#f5f5f0] focus:outline-none focus:border-emerald-500/70"
+                className="w-full bg-white border-2 border-slate-900 rounded-xl px-3.5 py-2 text-sm text-slate-900 focus:outline-none shadow-pop-sm font-bold cursor-pointer"
               >
                 <option value="private">Private (Encrypted for you alone)</option>
                 <option value="unlisted">Unlisted (Accessible by secret link)</option>
@@ -721,3 +801,4 @@ export function ExperienceModal() {
     </>
   );
 }
+

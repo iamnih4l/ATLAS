@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { AlertCircle, CheckCircle2, ChevronDown, ChevronUp, Database, Globe, Key, Cloud } from 'lucide-react';
+import { CheckCircle2, ChevronDown, ChevronUp, Database, Globe, Key, Cloud } from 'lucide-react';
 import { Badge } from './badge';
 
 export function SetupBanner() {
@@ -13,53 +13,53 @@ export function SetupBanner() {
 
   const integrations = [
     {
-      name: 'Supabase PostgreSQL & Auth',
+      name: 'Supabase Database & Auth',
       description: 'Persistent cloud storage, PostGIS spatial queries, user auth.',
       status: hasSupabase ? 'connected' : 'local_fallback',
       icon: Database,
-      note: hasSupabase ? 'Active' : 'Using Local In-Memory & Demo Mode',
+      note: hasSupabase ? 'Active' : 'Using Local Storage & Demo Mode',
     },
     {
       name: '3D Earth Engine',
-      description: 'CartoDB Dark Matter / OpenStreetMap tiles active. Cesium Ion optional.',
+      description: 'NASA Blue Marble daylight imagery & realistic dynamic clouds active.',
       status: 'active',
       icon: Globe,
-      note: hasCesium ? 'Cesium Ion Enabled' : 'Dark Matter Tiles (Offline/Free Active)',
+      note: '☀️ 3D Day Mode Active',
     },
     {
-      name: 'AI Experience Companion (Orion)',
+      name: 'AI Adventure Buddy (Orion)',
       description: 'Grounded activity recommendation engine and destination intelligence.',
       status: 'active',
       icon: Key,
-      note: 'Verified Places & Knowledge Engine Ready',
+      note: 'Verified Places & Knowledge Ready',
     },
     {
-      name: 'Google Drive Import',
-      description: 'Import photos directly from Google Drive with EXIF GPS analysis.',
-      status: 'optional',
+      name: 'Photo & Media Import',
+      description: 'Drag & drop photos with automated EXIF GPS location extraction.',
+      status: 'active',
       icon: Cloud,
-      note: 'Manual Upload Always Active; Drive OAuth Optional',
+      note: 'EXIF GPS Extraction Ready',
     },
   ];
 
   return (
-    <div className="border-b border-[#1c1c22] bg-[#0c0c0f]/90 backdrop-blur-sm px-4 py-2 text-xs">
+    <div className="border-b border-amber-200/60 bg-amber-50/70 backdrop-blur-sm px-4 py-1.5 text-xs text-slate-700">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="flex h-2 w-2 relative">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
           </span>
-          <span className="text-[#f5f5f0] font-medium">ATLAS System Status</span>
-          <span className="text-[#71717a] hidden sm:inline">•</span>
-          <span className="text-[#a1a1aa] hidden sm:inline">
-            3D Globe, Experience Journal, Timeline, & Orion AI ready
+          <span className="text-slate-800 font-bold">ATLAS Journal Ready</span>
+          <span className="text-amber-300 hidden sm:inline">•</span>
+          <span className="text-slate-600 hidden sm:inline font-medium">
+            ☀️ 3D Daylight Earth • Memory Archive • Travel Timeline • Orion AI
           </span>
         </div>
 
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className="text-[#a1a1aa] hover:text-[#f5f5f0] flex items-center gap-1 font-mono text-[11px] transition-colors focus:outline-none"
+          className="text-slate-500 hover:text-slate-900 flex items-center gap-1 text-[11px] font-semibold transition-colors focus:outline-none cursor-pointer"
         >
           <span>Environment Status</span>
           {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
@@ -67,39 +67,35 @@ export function SetupBanner() {
       </div>
 
       {isExpanded && (
-        <div className="max-w-7xl mx-auto mt-3 pt-3 border-t border-[#1c1c22] grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 pb-1">
+        <div className="max-w-7xl mx-auto mt-2.5 pt-2.5 border-t border-amber-200/60 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2.5 pb-1">
           {integrations.map((item, i) => {
             const Icon = item.icon;
             return (
               <div
                 key={i}
-                className="bg-[#121215] border border-[#27272a] rounded-lg p-2.5 flex flex-col justify-between"
+                className="bg-white border border-amber-200/80 rounded-xl p-2.5 flex flex-col justify-between shadow-2xs"
               >
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <div className="flex items-center gap-1.5 font-medium text-[#f5f5f0]">
-                      <Icon className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>{item.name}</span>
+                    <div className="flex items-center gap-1.5 font-bold text-slate-800">
+                      <Icon className="w-3.5 h-3.5 text-orange-500" />
+                      <span className="text-xs">{item.name}</span>
                     </div>
                     {item.status === 'connected' || item.status === 'active' ? (
-                      <Badge variant="emerald" size="sm">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 flex items-center gap-1">
                         <CheckCircle2 className="w-2.5 h-2.5" /> Ready
-                      </Badge>
-                    ) : item.status === 'local_fallback' ? (
-                      <Badge variant="amber" size="sm">
-                        Demo Mode
-                      </Badge>
+                      </span>
                     ) : (
-                      <Badge variant="outline" size="sm">
-                        Optional
-                      </Badge>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                        Demo Mode
+                      </span>
                     )}
                   </div>
-                  <p className="text-[11px] text-[#71717a] leading-relaxed">
+                  <p className="text-[11px] text-slate-500 leading-relaxed">
                     {item.description}
                   </p>
                 </div>
-                <div className="mt-2 text-[10px] font-mono text-[#a1a1aa]">
+                <div className="mt-2 text-[10px] font-medium text-orange-600">
                   {item.note}
                 </div>
               </div>

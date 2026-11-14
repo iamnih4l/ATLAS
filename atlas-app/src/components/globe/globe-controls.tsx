@@ -2,19 +2,8 @@
 
 import React from 'react';
 import { useAtlasStore } from '@/lib/store';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import {
-  RotateCcw,
-  Layers,
-  Compass,
-  Filter,
-  Eye,
-  CheckCircle2,
-  BookmarkCheck,
-  Search,
-  Globe2,
-} from 'lucide-react';
+import { RotateCcw, Tag, Calendar } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export function GlobeControls() {
   const {
@@ -27,6 +16,8 @@ export function GlobeControls() {
     categories,
     experiences,
     setFlyToTarget,
+    globeVisualTheme,
+    setGlobeVisualTheme,
   } = useAtlasStore();
 
   // Extract distinct years from experiences
@@ -35,125 +26,122 @@ export function GlobeControls() {
   ).sort((a, b) => b - a);
 
   // Quick preset viewpoints
-  const quickJump = (target: { lat: number; lng: number; altitude: number }) => {
+  const resetCamera = () => {
     setFlyToTarget({
-      latitude: target.lat,
-      longitude: target.lng,
-      altitude: target.altitude,
+      latitude: 20,
+      longitude: 10,
+      altitude: 290,
     });
   };
 
   return (
-    <div className="absolute top-4 left-4 z-20 flex flex-col gap-2 max-w-sm sm:max-w-md">
-      {/* Top Filter Bar */}
-      <div className="p-2 bg-[#0e0e12]/90 backdrop-blur-md border border-[#27272a] rounded-xl shadow-xl flex items-center gap-1.5 flex-wrap">
+    <div className="absolute top-20 left-6 z-30 flex flex-col gap-2.5 pointer-events-auto select-none max-w-xs sm:max-w-md">
+      {/* Primary Filter Pill Strip */}
+      <div className="p-1.5 bg-[#FFF4D9]/95 backdrop-blur-xl border-2 border-[#171313] rounded-full shadow-pop flex items-center gap-1.5">
         <button
           onClick={() => setFilterType('all')}
-          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+          className={cn(
+            'px-3.5 py-1.5 rounded-full text-xs font-black transition-all cursor-pointer',
             filterType === 'all'
-              ? 'bg-emerald-500 text-black font-semibold shadow-sm'
-              : 'text-[#a1a1aa] hover:text-[#f5f5f0] hover:bg-[#18181f]'
-          }`}
+              ? 'bg-[#171313] text-white shadow-pop-sm scale-105'
+              : 'text-[#171313]/80 hover:text-[#171313] hover:bg-[#FFD45A]/50'
+          )}
         >
-          All Markers
+          All
         </button>
 
         <button
           onClick={() => setFilterType('experienced')}
-          className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${
+          className={cn(
+            'px-3.5 py-1.5 rounded-full text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer border-2',
             filterType === 'experienced'
-              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-semibold'
-              : 'text-[#a1a1aa] hover:text-[#f5f5f0] hover:bg-[#18181f]'
-          }`}
+              ? 'bg-[#F04432] text-white border-[#171313] shadow-pop-sm scale-105'
+              : 'border-transparent text-[#171313]/80 hover:text-[#171313] hover:bg-[#F04432]/20'
+          )}
         >
-          <span className="w-2 h-2 rounded-full bg-emerald-400 glow-emerald-subtle" />
-          Experienced
+          <span className="w-2 h-2 rounded-full bg-white border border-[#171313]" />
+          Memories
         </button>
 
         <button
           onClick={() => setFilterType('wishlist')}
-          className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${
+          className={cn(
+            'px-3.5 py-1.5 rounded-full text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer border-2',
             filterType === 'wishlist'
-              ? 'bg-violet-500/20 text-violet-300 border border-violet-500/40 font-semibold'
-              : 'text-[#a1a1aa] hover:text-[#f5f5f0] hover:bg-[#18181f]'
-          }`}
+              ? 'bg-[#FFD45A] text-[#171313] border-[#171313] shadow-pop-sm scale-105'
+              : 'border-transparent text-[#171313]/80 hover:text-[#171313] hover:bg-[#FFD45A]/40'
+          )}
         >
-          <span className="w-2 h-2 rounded-full bg-violet-400 glow-violet-subtle" />
+          <span className="w-2 h-2 rounded-full bg-[#171313] border border-white" />
           Wishlist
         </button>
 
-        <div className="h-4 w-px bg-[#27272a] mx-1" />
+        <div className="h-4 w-0.5 bg-[#171313]/20 mx-0.5" />
 
-        {/* Reset Camera */}
+        {/* Visual Style Toggle (16-Bit Pixel vs Graphic Pop) */}
         <button
-          onClick={() => quickJump({ lat: 20, lng: 10, altitude: 20000000 })}
-          className="text-[#71717a] hover:text-[#f5f5f0] hover:bg-[#1c1c24] p-1.5 rounded-lg transition-colors"
-          title="Reset Global View"
+          onClick={() => setGlobeVisualTheme(globeVisualTheme === 'pixel' ? 'graphic' : 'pixel')}
+          className="px-2.5 py-1 rounded-full text-[11px] font-black bg-[#6425F5] text-white border-2 border-[#171313] shadow-pop-sm hover:scale-105 active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer flex items-center gap-1"
+          title="Toggle Gamified Globe Style"
         >
-          <RotateCcw className="w-3.5 h-3.5" />
+          <span>{globeVisualTheme === 'pixel' ? '🎮 Pixel' : '🎨 Graphic'}</span>
+        </button>
+
+        {/* Reset Camera Button */}
+        <button
+          onClick={resetCamera}
+          className="text-[#171313] hover:bg-[#FFD45A] p-1.5 rounded-full border-2 border-transparent hover:border-[#171313] transition-all cursor-pointer"
+          title="Reset Earth View"
+        >
+          <RotateCcw className="w-3.5 h-3.5 stroke-[2.5]" />
         </button>
       </div>
 
-      {/* Secondary Dropdowns: Category & Year */}
+      {/* Secondary Capsules: Category & Year Filters */}
       <div className="flex items-center gap-2">
-        <select
-          value={selectedCategory || ''}
-          onChange={(e) => setSelectedCategory(e.target.value || null)}
-          className="bg-[#0e0e12]/90 backdrop-blur-md border border-[#27272a] rounded-lg px-2.5 py-1 text-[11px] text-[#f5f5f0] focus:outline-none focus:border-emerald-500/60"
-        >
-          <option value="">All Categories</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.icon} {c.name}
-            </option>
-          ))}
-        </select>
-
-        {years.length > 0 && (
+        {/* Category Pill Dropdown */}
+        <div className="relative">
           <select
-            value={selectedYear || ''}
-            onChange={(e) => setSelectedYear(e.target.value ? parseInt(e.target.value) : null)}
-            className="bg-[#0e0e12]/90 backdrop-blur-md border border-[#27272a] rounded-lg px-2.5 py-1 text-[11px] text-[#f5f5f0] focus:outline-none focus:border-emerald-500/60"
+            value={selectedCategory || ''}
+            onChange={(e) => setSelectedCategory(e.target.value || null)}
+            className="appearance-none bg-white border-2 border-[#171313] rounded-full pl-7 pr-7 py-1.5 text-xs text-[#171313] font-black shadow-pop-sm focus:outline-none transition-all cursor-pointer hover:bg-[#FFD45A]/30"
           >
-            <option value="">All Years</option>
-            {years.map((y) => (
-              <option key={y} value={y}>
-                {y}
+            <option value="">All Categories</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.icon} {c.name}
               </option>
             ))}
           </select>
-        )}
-      </div>
+          <Tag className="w-3.5 h-3.5 text-[#6425F5] absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none stroke-[2.5]" />
+          <span className="text-[10px] text-[#171313] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none font-black">
+            ▼
+          </span>
+        </div>
 
-      {/* Quick Landmark Bookmarks */}
-      <div className="hidden md:flex items-center gap-1.5 pt-1">
-        <span className="text-[10px] uppercase tracking-wider text-[#71717a] font-medium mr-1">
-          Quick Fly:
-        </span>
-        <button
-          onClick={() => quickJump({ lat: 25.0931, lng: 55.1384, altitude: 50000 })}
-          className="text-[10px] text-[#a1a1aa] hover:text-emerald-400 hover:bg-[#181820] px-2 py-0.5 rounded border border-[#27272a] transition-all"
-        >
-          Dubai
-        </button>
-        <button
-          onClick={() => quickJump({ lat: 34.9671, lng: 135.7727, altitude: 60000 })}
-          className="text-[10px] text-[#a1a1aa] hover:text-emerald-400 hover:bg-[#181820] px-2 py-0.5 rounded border border-[#27272a] transition-all"
-        >
-          Kyoto
-        </button>
-        <button
-          onClick={() => quickJump({ lat: 43.0799, lng: -79.0747, altitude: 40000 })}
-          className="text-[10px] text-[#a1a1aa] hover:text-emerald-400 hover:bg-[#181820] px-2 py-0.5 rounded border border-[#27272a] transition-all"
-        >
-          Niagara
-        </button>
-        <button
-          onClick={() => quickJump({ lat: 48.8584, lng: 2.2945, altitude: 50000 })}
-          className="text-[10px] text-[#a1a1aa] hover:text-emerald-400 hover:bg-[#181820] px-2 py-0.5 rounded border border-[#27272a] transition-all"
-        >
-          Paris
-        </button>
+        {/* Year Pill Dropdown (if multiple years exist) */}
+        {years.length > 0 && (
+          <div className="relative">
+            <select
+              value={selectedYear || ''}
+              onChange={(e) =>
+                setSelectedYear(e.target.value ? parseInt(e.target.value) : null)
+              }
+              className="appearance-none bg-white border-2 border-[#171313] rounded-full pl-7 pr-7 py-1.5 text-xs text-[#171313] font-black shadow-pop-sm focus:outline-none transition-all cursor-pointer hover:bg-[#FFD45A]/30"
+            >
+              <option value="">All Years</option>
+              {years.map((y) => (
+                <option key={y} value={y}>
+                  {y}
+                </option>
+              ))}
+            </select>
+            <Calendar className="w-3.5 h-3.5 text-[#F04432] absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none stroke-[2.5]" />
+            <span className="text-[10px] text-[#171313] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none font-black">
+              ▼
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );

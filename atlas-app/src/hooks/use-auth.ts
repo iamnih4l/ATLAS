@@ -59,3 +59,4 @@ export const useAuth = create<AuthState>((set) => ({
     set({ user: null });
   },
 }));
+

@@ -22,3 +22,4 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: err.message || 'AI generation failed' }, { status: 500 });
   }
 }
+

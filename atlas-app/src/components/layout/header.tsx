@@ -3,7 +3,7 @@
 import React from 'react';
 import { Search, Sparkles, Plus, MapPin } from 'lucide-react';
 import { useAtlasStore } from '@/lib/store';
-import { Button } from '@/components/ui/button';
+import { ShimmerButton } from '@/components/ui/shimmer-button';
 import Link from 'next/link';
 
 export function Header() {
@@ -16,58 +16,55 @@ export function Header() {
   } = useAtlasStore();
 
   return (
-    <header className="h-14 border-b border-[#1c1c22] bg-[#0c0c0f]/90 backdrop-blur-md px-4 flex items-center justify-between gap-4 z-20">
+    <header className="h-14 border-b border-slate-200/80 bg-white/90 backdrop-blur-md px-4 flex items-center justify-between gap-4 z-20 shadow-2xs">
       {/* Search Input */}
       <div className="relative flex-1 max-w-md">
-        <Search className="w-4 h-4 text-[#71717a] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+        <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
         <input
           type="text"
-          placeholder="Search places, memories, countries, or activities…"
+          placeholder="Search places, memories, countries, or adventures…"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full bg-[#121215] border border-[#27272a] rounded-lg pl-9 pr-3.5 py-1.5 text-xs text-[#f5f5f0] placeholder-[#52525b] focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/20 transition-all"
+          className="w-full bg-slate-50/90 border border-slate-200/90 rounded-full pl-10 pr-4 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-orange-400 focus:bg-white focus:ring-2 focus:ring-orange-100 transition-all font-medium"
         />
       </div>
 
       {/* Quick Summary Pill & Actions */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2.5">
         {/* Quick Stats Pill */}
-        <div className="hidden lg:flex items-center gap-3 px-3 py-1 rounded-full bg-[#141418] border border-[#27272a] text-[11px] text-[#a1a1aa]">
+        <div className="hidden lg:flex items-center gap-3 px-3.5 py-1.5 rounded-full bg-orange-50/70 border border-orange-200/60 text-xs text-slate-700 shadow-2xs">
           <div className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-            <span className="font-semibold text-[#f5f5f0]">{experiences.length}</span>
-            <span>Memories</span>
+            <span className="w-2 h-2 rounded-full bg-orange-500" />
+            <span className="font-bold text-orange-600">{experiences.length}</span>
+            <span className="text-slate-600">Memories</span>
           </div>
-          <span className="text-[#3f3f46]">•</span>
+          <span className="text-orange-200">•</span>
           <div className="flex items-center gap-1.5">
-            <MapPin className="w-3 h-3 text-emerald-400" />
-            <span className="font-semibold text-[#f5f5f0]">{locations.length}</span>
-            <span>Locations</span>
+            <MapPin className="w-3.5 h-3.5 text-rose-500" />
+            <span className="font-bold text-slate-800">{locations.length}</span>
+            <span className="text-slate-600">Places</span>
           </div>
         </div>
 
         {/* AI Orion Trigger */}
         <Link href="/discover">
-          <Button
-            variant="secondary"
-            size="sm"
-            className="border-emerald-500/30 hover:border-emerald-500/60 text-emerald-300"
+          <button
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-violet-50 text-violet-700 border border-violet-200/80 hover:bg-violet-100 transition-colors cursor-pointer"
           >
-            <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+            <Sparkles className="w-3.5 h-3.5 text-violet-500" />
             <span className="hidden sm:inline">Ask Orion AI</span>
-          </Button>
+          </button>
         </Link>
 
-        {/* New Experience CTA */}
-        <Button
+        {/* New Experience CTA with 21st.dev Shimmer Button */}
+        <ShimmerButton
           onClick={() => setExperienceModalOpen(true)}
-          variant="primary"
-          size="sm"
-          className="font-medium"
+          className="text-xs font-bold py-1.5 px-3.5"
+          borderRadius="9999px"
         >
-          <Plus className="w-3.5 h-3.5" />
+          <Plus className="w-3.5 h-3.5 stroke-[2.5] mr-1" />
           <span className="hidden sm:inline">Add Memory</span>
-        </Button>
+        </ShimmerButton>
       </div>
     </header>
   );

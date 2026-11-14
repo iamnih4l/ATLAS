@@ -28,6 +28,8 @@ export function WishlistModal() {
     editingWishlistItem,
     setEditingWishlistItem,
     setConvertingWishlistToExperience,
+    pendingLocation,
+    setPendingLocation,
     setExperienceModalOpen,
     addWishlistItem,
     updateWishlistItem,
@@ -81,10 +83,19 @@ export function WishlistModal() {
         setLongitude(loc.longitude);
         setPlaceId(loc.place_id);
       }
+    } else if (pendingLocation) {
+      setLocationName(pendingLocation.name || 'Selected Point on Earth');
+      setCity(pendingLocation.city || '');
+      setCountry(pendingLocation.country || '');
+      setVenue(pendingLocation.venue || '');
+      setLatitude(pendingLocation.latitude);
+      setLongitude(pendingLocation.longitude);
+      setTitle(pendingLocation.name ? `Visit ${pendingLocation.name}` : '');
+      setPriority('medium');
     } else {
       resetForm();
     }
-  }, [editingWishlistItem, isWishlistModalOpen]);
+  }, [editingWishlistItem, pendingLocation, isWishlistModalOpen]);
 
   const resetForm = () => {
     setTitle('');
@@ -109,6 +120,7 @@ export function WishlistModal() {
   const handleClose = () => {
     setWishlistModalOpen(false);
     setEditingWishlistItem(null);
+    setPendingLocation(null);
     resetForm();
   };
 
@@ -260,13 +272,13 @@ export function WishlistModal() {
         {/* Priority & Budget */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>
-            <label className="block text-xs font-medium text-[#a1a1aa] uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-black text-[#171313] uppercase tracking-wider mb-1.5">
               Priority Level
             </label>
             <select
               value={priority}
               onChange={(e) => setPriority(e.target.value as any)}
-              className="w-full bg-[#121215] border border-[#27272a] rounded-lg px-3 py-2 text-sm text-[#f5f5f0] focus:outline-none focus:border-emerald-500/70"
+              className="w-full bg-white border-2 border-[#171313] rounded-2xl px-3.5 py-2 text-sm text-[#171313] focus:outline-none shadow-pop-sm font-black cursor-pointer"
             >
               <option value="high">High Priority</option>
               <option value="medium">Medium Priority</option>
@@ -275,13 +287,13 @@ export function WishlistModal() {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-[#a1a1aa] uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-black text-[#171313] uppercase tracking-wider mb-1.5">
               Category
             </label>
             <select
               value={categoryId}
               onChange={(e) => setCategoryId(e.target.value)}
-              className="w-full bg-[#121215] border border-[#27272a] rounded-lg px-3 py-2 text-sm text-[#f5f5f0] focus:outline-none focus:border-emerald-500/70"
+              className="w-full bg-white border-2 border-[#171313] rounded-2xl px-3.5 py-2 text-sm text-[#171313] focus:outline-none shadow-pop-sm font-black cursor-pointer"
             >
               {categories.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -298,15 +310,15 @@ export function WishlistModal() {
               placeholder="e.g. 800"
               value={estimatedBudget}
               onChange={(e) => setEstimatedBudget(e.target.value)}
-              leftIcon={<DollarSign className="w-3.5 h-3.5" />}
+              leftIcon={<DollarSign className="w-3.5 h-3.5 text-[#171313]" />}
             />
           </div>
         </div>
 
         {/* Location Selection */}
-        <div className="p-3 bg-[#0e0e12] border border-[#27272a] rounded-xl space-y-2">
-          <label className="text-xs font-semibold text-[#a1a1aa] uppercase tracking-wider flex items-center gap-1.5">
-            <MapPin className="w-3.5 h-3.5 text-violet-400" />
+        <div className="p-4 bg-white border-2 border-[#171313] rounded-3xl space-y-3 shadow-pop-sm">
+          <label className="text-xs font-black text-[#171313] uppercase tracking-wider flex items-center gap-1.5">
+            <MapPin className="w-3.5 h-3.5 text-[#F04432] stroke-[2.5]" />
             Target Coordinates on Globe (Optional)
           </label>
 
@@ -316,22 +328,22 @@ export function WishlistModal() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => searchResults.length > 0 && setShowSearchResults(true)}
-              leftIcon={<Search className="w-4 h-4 text-violet-400" />}
+              leftIcon={<Search className="w-4 h-4 text-[#6425F5] stroke-[2.5]" />}
             />
 
             {showSearchResults && searchResults.length > 0 && (
-              <div className="absolute left-0 right-0 top-full mt-1.5 bg-[#141418] border border-[#2a2a32] rounded-xl shadow-2xl z-30 max-h-48 overflow-y-auto">
+              <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border-2 border-[#171313] rounded-2xl shadow-pop-lg z-30 max-h-48 overflow-y-auto">
                 {searchResults.map((place) => (
                   <div
                     key={place.place_id}
                     onClick={() => selectPlace(place)}
-                    className="p-2.5 hover:bg-[#1f1f26] cursor-pointer border-b border-[#1c1c22] last:border-none transition-colors"
+                    className="p-3 hover:bg-[#FFD45A]/30 cursor-pointer border-b-2 border-[#171313]/10 last:border-none transition-colors"
                   >
-                    <p className="text-xs font-medium text-[#f5f5f0] flex items-center gap-1.5">
-                      <MapPin className="w-3 h-3 text-violet-400 shrink-0" />
+                    <p className="text-xs font-black text-[#171313] flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 text-[#F04432] shrink-0 stroke-[2.5]" />
                       {place.name}
                     </p>
-                    <p className="text-[11px] text-[#71717a] mt-0.5 truncate pl-4.5">
+                    <p className="text-[11px] text-[#171313]/70 mt-0.5 truncate pl-4.5 font-bold">
                       {place.display_name}
                     </p>
                   </div>
@@ -341,9 +353,9 @@ export function WishlistModal() {
           </div>
 
           {locationName && (
-            <div className="p-2.5 bg-[#16161b] rounded-lg border border-[#23232b] flex items-center justify-between text-xs">
-              <span className="font-semibold text-[#f5f5f0] flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5 text-violet-400" />
+            <div className="p-3 bg-[#FFF4D9] rounded-2xl border-2 border-[#171313] flex items-center justify-between text-xs shadow-pop-sm">
+              <span className="font-black text-[#171313] flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 text-[#F04432] stroke-[2.5]" />
                 {locationName} {city && `(${city}, ${country})`}
               </span>
               <button
@@ -353,9 +365,9 @@ export function WishlistModal() {
                   setLatitude(null);
                   setLongitude(null);
                 }}
-                className="text-[#71717a] hover:text-rose-400 p-0.5"
+                className="text-[#171313] hover:text-[#F04432] p-0.5 cursor-pointer"
               >
-                <X className="w-3.5 h-3.5" />
+                <X className="w-4 h-4 stroke-[2.5]" />
               </button>
             </div>
           )}
@@ -414,3 +426,4 @@ export function WishlistModal() {
     </Modal>
   );
 }
+

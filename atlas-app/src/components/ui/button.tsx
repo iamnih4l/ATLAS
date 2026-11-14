@@ -25,20 +25,20 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     },
     ref
   ) => {
-    const baseStyles = 'inline-flex items-center justify-center font-medium rounded-lg transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-emerald-500/50';
+    const baseStyles = 'inline-flex items-center justify-center font-black rounded-2xl transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed border-2 border-[#171313] shadow-pop-sm hover:shadow-pop active:translate-x-[2px] active:translate-y-[2px] active:shadow-none focus:outline-none cursor-pointer';
 
     const variants = {
-      primary: 'bg-emerald-500 text-black hover:bg-emerald-400 font-semibold shadow-sm hover:shadow-emerald-500/20',
-      secondary: 'bg-[#18181b] text-[#f5f5f0] border border-[#27272a] hover:bg-[#27272a] hover:border-[#3f3f46]',
-      outline: 'bg-transparent text-[#f5f5f0] border border-[#3f3f46] hover:bg-[#18181b] hover:border-emerald-500/60',
-      ghost: 'bg-transparent text-[#a1a1aa] hover:text-[#f5f5f0] hover:bg-[#18181b]',
-      danger: 'bg-rose-500/20 text-rose-300 border border-rose-500/30 hover:bg-rose-500/30',
-      glow: 'bg-emerald-500 text-black font-semibold hover:bg-emerald-400 glow-emerald',
+      primary: 'bg-[#F04432] text-white hover:bg-[#F04432]/90 font-black',
+      secondary: 'bg-[#FFD45A] text-[#171313] hover:bg-[#FFD45A]/90 font-black',
+      outline: 'bg-white text-[#171313] hover:bg-[#FFD45A]/30 font-black',
+      ghost: 'border-transparent shadow-none hover:bg-[#FFD45A]/30 text-[#171313] font-black',
+      danger: 'bg-rose-100 text-[#F04432] hover:bg-rose-200 font-black',
+      glow: 'bg-[#6425F5] text-white hover:bg-[#6425F5]/90 font-black',
     };
 
     const sizes = {
-      sm: 'text-xs px-2.5 py-1.5 gap-1.5',
-      md: 'text-sm px-3.5 py-2 gap-2',
+      sm: 'text-xs px-3 py-1.5 gap-1.5',
+      md: 'text-xs sm:text-sm px-4 py-2 gap-2',
       lg: 'text-base px-5 py-2.5 gap-2.5',
       icon: 'p-2 aspect-square',
     };

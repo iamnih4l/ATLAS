@@ -55,41 +55,48 @@ export function Modal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity"
+        className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity"
         onClick={onClose}
       />
 
       {/* Modal Dialog Content */}
       <div
         className={cn(
-          'relative w-full z-10 max-h-[90vh] flex flex-col bg-[#121215] border border-[#27272a] rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150',
+          'relative w-full z-10 max-h-[90vh] flex flex-col bg-[#FFF4D9] border-2 border-[#171313] rounded-3xl shadow-pop-lg overflow-hidden animate-in fade-in zoom-in-95 duration-150',
           maxWidths[maxWidth]
         )}
       >
+        {/* Top Folder Tab inspired by Child Edu Mellow & Saved Folders */}
+        <div className="absolute top-2 left-6 z-20 flex items-center gap-1.5 px-3.5 py-1 rounded-t-xl bg-[#FFD45A] border-2 border-[#171313] border-b-0 text-[11px] font-black text-[#171313] uppercase tracking-wider shadow-pop-sm">
+          <span>📁</span>
+          <span>ATLAS PASSPORT</span>
+        </div>
+
         {/* Header */}
         {(title || description) && (
-          <div className="flex items-start justify-between p-5 border-b border-[#1c1c22]">
+          <div className="flex items-start justify-between p-5 pt-9 border-b-2 border-[#171313] bg-white">
             <div>
               {title && (
-                <h3 className="text-lg font-semibold text-[#f5f5f0] tracking-tight">
-                  {title}
+                <h3 className="text-xl font-black text-[#171313] tracking-tight font-sans flex items-center gap-2">
+                  <span>{title}</span>
                 </h3>
               )}
               {description && (
-                <p className="text-xs text-[#a1a1aa] mt-0.5">{description}</p>
+                <p className="text-xs text-[#171313]/70 mt-1 font-bold">{description}</p>
               )}
             </div>
             <button
               onClick={onClose}
-              className="text-[#71717a] hover:text-[#f5f5f0] hover:bg-[#1a1a20] p-1.5 rounded-lg transition-colors focus:outline-none"
+              className="text-white bg-[#F04432] hover:bg-[#F04432]/90 border-2 border-[#171313] p-1.5 rounded-xl shadow-pop-sm hover:translate-x-0.5 hover:translate-y-0.5 transition-all focus:outline-none cursor-pointer"
+              title="Close (Esc)"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4 stroke-[2.5]" />
             </button>
           </div>
         )}
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto p-5">{children}</div>
+        <div className="flex-1 overflow-y-auto p-5 text-[#171313] bg-warm-cream-grid">{children}</div>
       </div>
     </div>
   );
