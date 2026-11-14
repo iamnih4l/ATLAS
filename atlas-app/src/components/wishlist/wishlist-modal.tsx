@@ -161,6 +161,8 @@ export function WishlistModal() {
     }
 
     let locId: string | null = null;
+    let resolvedLocation: Location | undefined = undefined;
+
     if (locationName && latitude !== null && longitude !== null) {
       let targetLocation = locations.find(
         (l) =>
@@ -184,11 +186,12 @@ export function WishlistModal() {
         addLocation(targetLocation);
       }
       locId = targetLocation.id;
+      resolvedLocation = targetLocation;
     }
 
     const budgetNum = estimatedBudget ? parseFloat(estimatedBudget) : null;
     const cat = categories.find((c) => c.id === categoryId);
-    const loc = locId ? locations.find((l) => l.id === locId) : undefined;
+    const loc = resolvedLocation || (locId ? locations.find((l) => l.id === locId) : undefined);
 
     if (editingWishlistItem) {
       updateWishlistItem(editingWishlistItem.id, {
@@ -207,7 +210,7 @@ export function WishlistModal() {
     } else {
       const newItem: WishlistItem = {
         id: `wish-${Date.now()}`,
-        user_id: 'demo-user',
+        user_id: 'guest-user',
         title,
         location_id: locId,
         description,
@@ -230,7 +233,7 @@ export function WishlistModal() {
         setFlyToTarget({
           latitude: loc.latitude,
           longitude: loc.longitude,
-          altitude: 600000,
+          altitude: 400000,
         });
       }
     }

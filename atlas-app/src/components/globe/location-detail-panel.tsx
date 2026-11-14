@@ -32,14 +32,19 @@ export function LocationDetailPanel() {
   );
 
   const locationWishlist = wishlistItems.filter(
-    (w) => w.location_id === selectedLocation.id && !w.is_completed
+    (w) =>
+      (w.location_id === selectedLocation.id || w.location?.id === selectedLocation.id) &&
+      !w.is_completed
   );
 
   const primaryPhoto = locationExperiences.find(
     (e) => e.cover_image_url || e.media?.[0]?.file_url
   );
   const heroImage =
-    primaryPhoto?.cover_image_url || primaryPhoto?.media?.[0]?.file_url;
+    primaryPhoto?.cover_image_url ||
+    primaryPhoto?.media?.[0]?.file_url ||
+    locationWishlist[0]?.reference_image_url ||
+    'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80';
 
   const handleOpenExperience = (exp: any) => {
     setEditingExperience(exp);
@@ -48,6 +53,7 @@ export function LocationDetailPanel() {
 
   const handleOpenWishlist = (item: any) => {
     setEditingWishlistItem(item);
+    useAtlasStore.setState({ isWishlistModalOpen: true });
   };
 
   const handleAddExperienceHere = () => {

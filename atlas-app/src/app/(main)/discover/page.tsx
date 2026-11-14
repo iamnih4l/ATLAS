@@ -97,7 +97,7 @@ export default function DiscoverPage() {
   }, [activeMode, experiences, locations, destinationInput]);
 
   const handleSaveToWishlist = (rec: AIRecommendation) => {
-    saveRecommendationToWishlist(rec.id);
+    saveRecommendationToWishlist(rec);
     setSavedIds((prev) => new Set(prev).add(rec.id));
   };
 

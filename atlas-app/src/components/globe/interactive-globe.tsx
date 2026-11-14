@@ -98,16 +98,36 @@ export default function InteractiveGlobe() {
 
   // Filter visible user locations based on active filters
   const visibleUserMarkers = useMemo(() => {
-    return locations.map((loc) => {
+    // Collect all unique locations from locations list and directly attached objects
+    const locMap = new Map<string, Location>();
+    locations.forEach((loc) => {
+      if (loc && loc.id) locMap.set(loc.id, loc);
+    });
+
+    wishlistItems.forEach((w) => {
+      if (w.location && w.location.id && !locMap.has(w.location.id)) {
+        locMap.set(w.location.id, w.location);
+      }
+    });
+
+    experiences.forEach((e) => {
+      if (e.location && e.location.id && !locMap.has(e.location.id)) {
+        locMap.set(e.location.id, e.location);
+      }
+    });
+
+    const allLocations = Array.from(locMap.values());
+
+    return allLocations.map((loc) => {
       const locExperiences = experiences.filter((e) => {
-        if (e.location_id !== loc.id) return false;
+        if (e.location_id !== loc.id && e.location?.id !== loc.id) return false;
         if (selectedCategory && e.category_id !== selectedCategory) return false;
         if (selectedYear && new Date(e.date).getFullYear() !== selectedYear) return false;
         return true;
       });
 
       const locWishlist = wishlistItems.filter((w) => {
-        if (w.location_id !== loc.id || w.is_completed) return false;
+        if ((w.location_id !== loc.id && w.location?.id !== loc.id) || w.is_completed) return false;
         if (selectedCategory && w.category_id !== selectedCategory) return false;
         return true;
       });
@@ -138,7 +158,11 @@ export default function InteractiveGlobe() {
         markerType,
         count: locExperiences.length + locWishlist.length,
         experiences: locExperiences,
-        photo: primaryExp?.cover_image_url || primaryExp?.media?.[0]?.file_url || undefined,
+        photo:
+          primaryExp?.cover_image_url ||
+          primaryExp?.media?.[0]?.file_url ||
+          primaryWish?.reference_image_url ||
+          undefined,
         rating: primaryExp?.rating || undefined,
         category: primaryExp?.category_id || primaryWish?.category_id || undefined,
       };

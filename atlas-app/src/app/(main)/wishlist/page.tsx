@@ -22,6 +22,7 @@ import { VerifiedStamp, TicketBadge } from '@/components/ui/atlas-illustrations'
 export default function WishlistPage() {
   const {
     wishlistItems,
+    locations,
     setWishlistModalOpen,
     setEditingWishlistItem,
     setConvertingWishlistToExperience,
@@ -54,11 +55,12 @@ export default function WishlistPage() {
 
   const handleFly = (e: React.MouseEvent, item: any) => {
     e.stopPropagation();
-    if (item.location) {
+    const loc = item.location || locations.find((l) => l.id === item.location_id);
+    if (loc && loc.latitude !== undefined && loc.longitude !== undefined) {
       setFlyToTarget({
-        latitude: item.location.latitude,
-        longitude: item.location.longitude,
-        altitude: 200,
+        latitude: loc.latitude,
+        longitude: loc.longitude,
+        altitude: 400000,
       });
     }
   };
