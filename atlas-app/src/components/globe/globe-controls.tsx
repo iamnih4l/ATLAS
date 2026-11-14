@@ -16,8 +16,6 @@ export function GlobeControls() {
     categories,
     experiences,
     setFlyToTarget,
-    globeVisualTheme,
-    setGlobeVisualTheme,
   } = useAtlasStore();
 
   // Extract distinct years from experiences
@@ -77,15 +75,6 @@ export function GlobeControls() {
         </button>
 
         <div className="h-4 w-0.5 bg-[#171313]/20 mx-0.5" />
-
-        {/* Visual Style Toggle (16-Bit Pixel vs Graphic Pop) */}
-        <button
-          onClick={() => setGlobeVisualTheme(globeVisualTheme === 'pixel' ? 'graphic' : 'pixel')}
-          className="px-2.5 py-1 rounded-full text-[11px] font-black bg-[#6425F5] text-white border-2 border-[#171313] shadow-pop-sm hover:scale-105 active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer flex items-center gap-1"
-          title="Toggle Gamified Globe Style"
-        >
-          <span>{globeVisualTheme === 'pixel' ? '🎮 Pixel' : '🎨 Graphic'}</span>
-        </button>
 
         {/* Reset Camera Button */}
         <button

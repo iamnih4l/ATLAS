@@ -47,13 +47,11 @@ interface AtlasState {
   pendingLocation: { latitude: number; longitude: number; name?: string; city?: string; country?: string; venue?: string } | null;
   setPendingLocation: (loc: { latitude: number; longitude: number; name?: string; city?: string; country?: string; venue?: string } | null) => void;
 
-  // Globe Selected Location & Visual Style
+  // Globe Selected Location & Camera
   selectedLocation: Location | null;
   setSelectedLocation: (loc: Location | null) => void;
   flyToTarget: FlyToTarget | null;
   setFlyToTarget: (target: FlyToTarget | null) => void;
-  globeVisualTheme: 'pixel' | 'graphic';
-  setGlobeVisualTheme: (theme: 'pixel' | 'graphic') => void;
 
   // Filters
   filterType: 'all' | 'experienced' | 'wishlist';
@@ -116,8 +114,6 @@ export const useAtlasStore = create<AtlasState>()(
       setSelectedLocation: (loc) => set({ selectedLocation: loc }),
       flyToTarget: null,
       setFlyToTarget: (target) => set({ flyToTarget: target }),
-      globeVisualTheme: 'pixel',
-      setGlobeVisualTheme: (theme) => set({ globeVisualTheme: theme }),
 
       filterType: 'all',
       setFilterType: (type) => set({ filterType: type }),
@@ -273,7 +269,6 @@ export const useAtlasStore = create<AtlasState>()(
         experiences: state.experiences,
         wishlistItems: state.wishlistItems,
         categories: state.categories,
-        globeVisualTheme: state.globeVisualTheme,
       }),
     }
   )

@@ -51,7 +51,6 @@ export default function InteractiveGlobe() {
     selectedYear,
     setSelectedLocation,
     flyToTarget,
-    globeVisualTheme,
     setPendingLocation,
     setExperienceModalOpen,
     setWishlistModalOpen,
@@ -215,29 +214,21 @@ export default function InteractiveGlobe() {
     rimLight.position.set(-160, -80, -180);
     scene.add(rimLight);
 
-    // 6. Texture Loader for Local Pre-Generated Gamified Earth Maps
+    // 6. Texture Loader for Local Gamified Earth Map
     const textureLoader = new THREE.TextureLoader();
 
     // Graphic Pop Texture
-    const popTexture = textureLoader.load('/textures/earth_gamified_pop.png');
-    popTexture.wrapS = THREE.RepeatWrapping;
-    popTexture.wrapT = THREE.ClampToEdgeWrapping;
-
-    // Pixel Art Texture
-    const pixelTexture = textureLoader.load('/textures/earth_gamified_pixel.png');
-    pixelTexture.minFilter = THREE.NearestFilter;
-    pixelTexture.magFilter = THREE.NearestFilter;
-    pixelTexture.wrapS = THREE.RepeatWrapping;
-    pixelTexture.wrapT = THREE.ClampToEdgeWrapping;
+    const earthTexture = textureLoader.load('/textures/earth_gamified_pop.png');
+    earthTexture.wrapS = THREE.RepeatWrapping;
+    earthTexture.wrapT = THREE.ClampToEdgeWrapping;
 
     // Specular Map (glistening ocean sheen)
     const specularTexture = textureLoader.load('/textures/earth_specular.jpg');
 
-    // Initial Material
-    const initialTexture = globeVisualTheme === 'graphic' ? popTexture : pixelTexture;
+    // Material
     const earthGeo = new THREE.SphereGeometry(earthRadius, 64, 64);
     const earthMat = new THREE.MeshPhongMaterial({
-      map: initialTexture,
+      map: earthTexture,
       specularMap: specularTexture,
       specular: new THREE.Color(0xa5f3fc), // Sparkling cyan sheen on water
       shininess: 36,
@@ -565,7 +556,7 @@ export default function InteractiveGlobe() {
       }
       renderer.dispose();
     };
-  }, [setSelectedLocation, globeVisualTheme]);
+  }, [setSelectedLocation]);
 
   // ============================================================================
   // 5. REACTIVE USER MEMORY / WISHLIST MARKERS
@@ -626,27 +617,7 @@ export default function InteractiveGlobe() {
   }, [visibleUserMarkers]);
 
   // ============================================================================
-  // 6. REACTIVE STYLE SWITCHER (16-Bit Pixel vs Graphic Pop)
-  // ============================================================================
-  useEffect(() => {
-    if (!earthMatRef.current) return;
-    const loader = new THREE.TextureLoader();
-
-    if (globeVisualTheme === 'graphic') {
-      const popTex = loader.load('/textures/earth_gamified_pop.png');
-      earthMatRef.current.map = popTex;
-      earthMatRef.current.needsUpdate = true;
-    } else {
-      const pixelTex = loader.load('/textures/earth_gamified_pixel.png');
-      pixelTex.minFilter = THREE.NearestFilter;
-      pixelTex.magFilter = THREE.NearestFilter;
-      earthMatRef.current.map = pixelTex;
-      earthMatRef.current.needsUpdate = true;
-    }
-  }, [globeVisualTheme]);
-
-  // ============================================================================
-  // 7. REACTIVE CAMERA FLY-TO
+  // 6. REACTIVE CAMERA FLY-TO
   // ============================================================================
   useEffect(() => {
     if (!flyToTarget) return;
