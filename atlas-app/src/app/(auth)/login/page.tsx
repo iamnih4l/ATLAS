@@ -70,7 +70,7 @@ export default function LoginPage() {
           required
         />
 
-        <div className="pt-2">
+        <div className="pt-2 flex flex-col gap-2">
           <Button
             type="submit"
             variant="glow"
@@ -81,6 +81,17 @@ export default function LoginPage() {
             <span>Unlock My Atlas</span>
             <ArrowRight className="w-4 h-4 ml-1" />
           </Button>
+
+          <button
+            type="button"
+            onClick={() => {
+              document.cookie = 'atlas_guest_mode=true; path=/; max-age=86400';
+              router.push('/globe');
+            }}
+            className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-[#171313] bg-[#FFD45A] border-2 border-[#171313] shadow-[2px_2px_0px_#171313] hover:scale-[1.02] active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer text-center"
+          >
+            Explore as Guest (No Login Required)
+          </button>
         </div>
       </form>
 

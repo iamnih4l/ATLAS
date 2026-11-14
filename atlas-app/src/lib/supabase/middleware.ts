@@ -6,8 +6,8 @@ export async function updateSession(request: NextRequest) {
     request,
   });
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY;
 
   // Check if we are running with real Supabase credentials or in local/demo mode
   const isConfigured =
@@ -60,7 +60,9 @@ export async function updateSession(request: NextRequest) {
     const isApiRoute = request.nextUrl.pathname.startsWith('/api');
     const isPublicRoute = request.nextUrl.pathname === '/';
 
-    if (!user && !isAuthRoute && !isApiRoute && !isPublicRoute) {
+    const isGuest = request.cookies.get('atlas_guest_mode');
+
+    if (!user && !isGuest && !isAuthRoute && !isApiRoute && !isPublicRoute) {
       const url = request.nextUrl.clone();
       url.pathname = '/login';
       return NextResponse.redirect(url);
