@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+/.pnp
+.pnp.*
+
+# Next.js
+.next/
+out/
+build/
+
+# Hyperframes
+**/.hyperframes/
+
+# Env
+.env*
+!.env.example
+
+# OS / Misc
+.DS_Store
+Thumbs.db
+*.tsbuildinfo
+next-env.d.ts
