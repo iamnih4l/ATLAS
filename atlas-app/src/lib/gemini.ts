@@ -221,3 +221,4 @@ CRITICAL: Return ONLY a raw JSON array matching this exact schema:
     return getRecommendationsForMode(mode, context.experiences || [], context.locations || [], query);
   }
 }
+
