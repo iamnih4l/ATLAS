@@ -5,7 +5,13 @@ export const metadata: Metadata = {
   title: "ATLAS — Personal Geographical Experience Journal",
   description: "A digital atlas of your life. Every location tells a story. Every experience becomes a memory. And AI helps you discover what to experience next.",
   icons: {
-    icon: "/favicon.ico",
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico", sizes: "any" },
+    ],
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
   },
 };
 
