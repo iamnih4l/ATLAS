@@ -77,8 +77,9 @@ export function LocationDetailPanel() {
         </div>
         <button
           onClick={() => setSelectedLocation(null)}
-          className="p-1.5 rounded-full bg-white border-2 border-[#171313] shadow-pop-sm hover:bg-[#FFF4D9] transition-all cursor-pointer mb-1 active:translate-x-0.5 active:translate-y-0.5"
+          className="p-2 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-full bg-white border-2 border-[#171313] shadow-pop-sm hover:bg-[#FFF4D9] transition-all cursor-pointer mb-1 active:translate-x-0.5 active:translate-y-0.5"
           title="Close Folder"
+          aria-label="Close Location Details Folder"
         >
           <X className="w-3.5 h-3.5 stroke-[2.5] text-[#171313]" />
         </button>

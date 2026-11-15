@@ -13,7 +13,7 @@ export default function MainLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-[#FFF4D9] text-[#171313] select-none font-sans">
+    <div className="relative w-full h-[100dvh] max-h-[100dvh] overflow-hidden bg-[#FFF4D9] text-[#171313] font-sans">
       {/* Cinematic Floating Island HUD Navigation (Desktop/Tablet & Mobile Top Bar) */}
       <CinematicHUD />
 

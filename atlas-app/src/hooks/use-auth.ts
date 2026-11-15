@@ -2,6 +2,7 @@
 
 import { create } from 'zustand';
 import { createClient } from '@/lib/supabase/client';
+import { useAtlasStore } from '@/lib/store';
 
 export interface AuthUser {
   id: string;
@@ -282,6 +283,11 @@ export const useAuth = create<AuthState>((set, get) => ({
     } finally {
       if (typeof document !== 'undefined') {
         document.cookie = 'atlas_guest_mode=; path=/; max-age=0; SameSite=Lax';
+      }
+      try {
+        useAtlasStore.getState().resetStore();
+      } catch (e) {
+        console.warn('Store reset error:', e);
       }
       set({ user: null, session: null, isLoading: false, authError: null });
     }

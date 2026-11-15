@@ -29,7 +29,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="h-full bg-[#FFF4D9] text-[#171313]">
-      <body className="h-full w-full overflow-hidden bg-[#FFF4D9] text-[#171313] antialiased selection:bg-[#FFD45A] selection:text-[#171313]">
+      <body className="min-h-full w-full bg-[#FFF4D9] text-[#171313] antialiased selection:bg-[#FFD45A] selection:text-[#171313]">
         {children}
       </body>
     </html>

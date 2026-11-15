@@ -146,7 +146,7 @@ export default function RegisterPage() {
 
       {/* RIGHT SECTION: Registration Card */}
       <div className="lg:col-span-6 w-full">
-        <div className="relative w-full bg-white border-2 border-[#171313] rounded-3xl p-6 sm:p-8 shadow-pop-lg">
+        <div className="relative w-full bg-white border-2 border-[#171313] rounded-3xl p-5 sm:p-8 shadow-pop-lg">
           {/* Top Folder Tab */}
           <div className="absolute -top-3 left-8 z-10 flex items-center gap-1.5 px-3.5 py-1 rounded-t-xl bg-[#FFD45A] border-2 border-[#171313] border-b-0 text-[10px] font-black text-[#171313] uppercase tracking-wider shadow-pop-sm">
             <span>📁</span>

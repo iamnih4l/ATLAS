@@ -9,7 +9,7 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen w-full bg-warm-cream-grid flex flex-col justify-between items-center p-4 sm:p-6 md:p-8 relative select-none">
+    <div className="min-h-[100dvh] w-full bg-warm-cream-grid flex flex-col justify-between items-center p-3 sm:p-6 md:p-8 relative overflow-y-auto">
       {/* Top Brand Bar */}
       <header className="w-full max-w-5xl flex items-center justify-between py-2 sm:py-4">
         <Link
@@ -42,7 +42,7 @@ export default function AuthLayout({
       </header>
 
       {/* Main Content Area */}
-      <main className="w-full max-w-5xl my-auto py-4 flex items-center justify-center">
+      <main className="w-full max-w-5xl flex-1 py-4 sm:py-8 flex items-center justify-center">
         {children}
       </main>
 

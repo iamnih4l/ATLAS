@@ -88,6 +88,7 @@ interface AtlasState {
 
   setRecommendations: (recs: AIRecommendation[]) => void;
   saveRecommendationToWishlist: (recOrId: string | AIRecommendation) => void;
+  resetStore: () => void;
 }
 
 export const useAtlasStore = create<AtlasState>()(
@@ -260,6 +261,26 @@ export const useAtlasStore = create<AtlasState>()(
             r.id === rec!.id ? { ...r, is_saved: true } : r
           ),
         }));
+      },
+
+      resetStore: () => {
+        set({
+          locations: [],
+          experiences: [],
+          wishlistItems: [],
+          recommendations: [],
+          selectedLocation: null,
+          flyToTarget: null,
+          editingExperience: null,
+          editingWishlistItem: null,
+          pendingLocation: null,
+          searchQuery: '',
+          selectedCategory: null,
+          selectedYear: null,
+        });
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('atlas_user_cache_v1');
+        }
       },
     }),
     {

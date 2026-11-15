@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useAtlasStore } from '@/lib/store';
-import { RotateCcw, Tag, Calendar } from 'lucide-react';
+import { RotateCcw, Tag, Calendar, Plus, Minus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export function GlobeControls() {
@@ -16,6 +16,7 @@ export function GlobeControls() {
     categories,
     experiences,
     setFlyToTarget,
+    setSelectedLocation,
   } = useAtlasStore();
 
   // Extract distinct years from experiences
@@ -131,6 +132,42 @@ export function GlobeControls() {
             </span>
           </div>
         )}
+      </div>
+
+      {/* Floating On-Screen Navigation & Zoom Controls (Mobile-First >=44px touch targets) */}
+      <div className="fixed right-3 sm:right-6 bottom-24 sm:bottom-6 z-30 flex flex-col items-center gap-2 pointer-events-auto select-none">
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new CustomEvent('atlas:globe-zoom', { detail: { delta: -45 } }))}
+          className="w-11 h-11 sm:w-10 sm:h-10 rounded-2xl bg-white hover:bg-[#FFD45A] active:scale-95 border-2 border-[#171313] shadow-pop flex items-center justify-center text-[#171313] transition-all cursor-pointer"
+          title="Zoom In (+)"
+          aria-label="Zoom In to Earth"
+        >
+          <Plus className="w-5 h-5 stroke-[3]" />
+        </button>
+
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new CustomEvent('atlas:globe-zoom', { detail: { delta: 45 } }))}
+          className="w-11 h-11 sm:w-10 sm:h-10 rounded-2xl bg-white hover:bg-[#FFD45A] active:scale-95 border-2 border-[#171313] shadow-pop flex items-center justify-center text-[#171313] transition-all cursor-pointer"
+          title="Zoom Out (-)"
+          aria-label="Zoom Out of Earth"
+        >
+          <Minus className="w-5 h-5 stroke-[3]" />
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            window.dispatchEvent(new CustomEvent('atlas:globe-reset'));
+            setSelectedLocation(null);
+          }}
+          className="w-11 h-11 sm:w-10 sm:h-10 rounded-2xl bg-[#FFD45A] hover:bg-[#ffcd38] active:scale-95 border-2 border-[#171313] shadow-pop flex items-center justify-center text-[#171313] transition-all cursor-pointer mt-1"
+          title="Reset Orbit View"
+          aria-label="Reset 3D Earth Orientation"
+        >
+          <RotateCcw className="w-4 h-4 stroke-[3]" />
+        </button>
       </div>
     </div>
   );

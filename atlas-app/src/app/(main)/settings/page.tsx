@@ -43,7 +43,7 @@ export default function SettingsPage() {
   const handleSignOut = async () => {
     setIsSigningOut(true);
     await signOut();
-    router.push('/login');
+    window.location.href = '/login';
   };
 
   // Data Export JSON

@@ -279,41 +279,52 @@ export default function InteractiveGlobe() {
     markerHitMeshesRef.current = [];
 
     // 16. POINTER & INTERACTION CONTROLS
-    let prevX = 0;
-    let prevY = 0;
-    let startX = 0;
-    let startY = 0;
+    let prevMouseX = 0;
+    let prevMouseY = 0;
+    let startMouseX = 0;
+    let startMouseY = 0;
+
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let prevTouchX = 0;
+    let prevTouchY = 0;
+    let touchStartTime = 0;
     let touchStartDist = 0;
+    let isPinching = false;
+
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
 
+    // MOUSE POINTER HANDLERS (Ignore touch pointers to prevent dual-processing)
     const onPointerDown = (e: PointerEvent) => {
+      if (e.pointerType === 'touch') return;
       isDraggingRef.current = true;
-      prevX = e.clientX;
-      prevY = e.clientY;
-      startX = e.clientX;
-      startY = e.clientY;
+      prevMouseX = e.clientX;
+      prevMouseY = e.clientY;
+      startMouseX = e.clientX;
+      startMouseY = e.clientY;
       container.style.cursor = 'grabbing';
     };
 
     const onPointerMove = (e: PointerEvent) => {
+      if (e.pointerType === 'touch') return;
       const clientX = e.clientX;
       const clientY = e.clientY;
 
       if (isDraggingRef.current) {
-        const dx = clientX - prevX;
-        const dy = clientY - prevY;
+        const dx = clientX - prevMouseX;
+        const dy = clientY - prevMouseY;
 
         targetRotYRef.current += dx * 0.005;
         targetRotXRef.current += dy * 0.005;
         targetRotXRef.current = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, targetRotXRef.current));
 
-        prevX = clientX;
-        prevY = clientY;
+        prevMouseX = clientX;
+        prevMouseY = clientY;
         isFlyingRef.current = false;
       }
 
-      // Hover Raycasting
+      // Hover Raycasting for desktop tooltip
       const rect = container.getBoundingClientRect();
       mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
       mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
@@ -342,7 +353,8 @@ export default function InteractiveGlobe() {
     };
 
     const onPointerUp = (e: PointerEvent) => {
-      const dragDist = Math.hypot(e.clientX - startX, e.clientY - startY);
+      if (e.pointerType === 'touch') return;
+      const dragDist = Math.hypot(e.clientX - startMouseX, e.clientY - startMouseY);
       isDraggingRef.current = false;
       container.style.cursor = 'grab';
 
@@ -358,9 +370,20 @@ export default function InteractiveGlobe() {
       targetZoomDistanceRef.current = Math.max(160, Math.min(480, targetZoomDistanceRef.current));
     };
 
-    // Mobile multi-touch pinch zoom
+    // TOUCH HANDLERS (Dedicated multi-touch logic with smooth pinch-to-zoom & 1-finger orbit drag)
     const onTouchStart = (e: TouchEvent) => {
-      if (e.touches.length === 2) {
+      if (e.touches.length === 1) {
+        isDraggingRef.current = true;
+        isPinching = false;
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        prevTouchX = e.touches[0].clientX;
+        prevTouchY = e.touches[0].clientY;
+        touchStartTime = Date.now();
+      } else if (e.touches.length === 2) {
+        // Multi-touch pinch zoom: explicitly disable orbital dragging so Earth doesn't spin
+        isDraggingRef.current = false;
+        isPinching = true;
         touchStartDist = Math.hypot(
           e.touches[0].clientX - e.touches[1].clientX,
           e.touches[0].clientY - e.touches[1].clientY
@@ -369,15 +392,69 @@ export default function InteractiveGlobe() {
     };
 
     const onTouchMove = (e: TouchEvent) => {
-      if (e.touches.length === 2 && touchStartDist > 0) {
+      if (e.touches.length === 1 && !isPinching) {
+        if (!isDraggingRef.current) return;
+        const curX = e.touches[0].clientX;
+        const curY = e.touches[0].clientY;
+        const dx = curX - prevTouchX;
+        const dy = curY - prevTouchY;
+
+        targetRotYRef.current += dx * 0.0055;
+        targetRotXRef.current += dy * 0.0055;
+        targetRotXRef.current = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, targetRotXRef.current));
+
+        prevTouchX = curX;
+        prevTouchY = curY;
+        isFlyingRef.current = false;
+      } else if (e.touches.length === 2 && touchStartDist > 0) {
+        isDraggingRef.current = false;
         const dist = Math.hypot(
           e.touches[0].clientX - e.touches[1].clientX,
           e.touches[0].clientY - e.touches[1].clientY
         );
-        const factor = (touchStartDist - dist) * 0.4;
+        const factor = (touchStartDist - dist) * 0.45;
         targetZoomDistanceRef.current = Math.max(160, Math.min(480, targetZoomDistanceRef.current + factor));
         touchStartDist = dist;
       }
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (isPinching) {
+        if (e.touches.length === 0) {
+          isPinching = false;
+          touchStartDist = 0;
+        }
+        isDraggingRef.current = false;
+        return;
+      }
+
+      if (isDraggingRef.current) {
+        isDraggingRef.current = false;
+        const changedTouch = e.changedTouches[0];
+        if (changedTouch) {
+          const dragDist = Math.hypot(changedTouch.clientX - touchStartX, changedTouch.clientY - touchStartY);
+          const touchDuration = Date.now() - touchStartTime;
+
+          // Deliberate mobile finger tap: up to 14px movement tolerance and < 350ms duration
+          if (dragDist < 14 && touchDuration < 350) {
+            handleGlobeClick(changedTouch.clientX, changedTouch.clientY);
+          }
+        }
+      }
+    };
+
+    // Custom Event Handlers for On-Screen Touch Controls
+    const onGlobeZoom = (e: Event) => {
+      const custom = e as CustomEvent<{ delta: number }>;
+      const delta = custom.detail?.delta ?? 30;
+      targetZoomDistanceRef.current = Math.max(160, Math.min(480, targetZoomDistanceRef.current + delta));
+    };
+
+    const onGlobeReset = () => {
+      targetRotXRef.current = 0.2;
+      targetRotYRef.current = 0;
+      targetZoomDistanceRef.current = 285;
+      isFlyingRef.current = false;
     };
 
     container.addEventListener('pointerdown', onPointerDown);
@@ -386,6 +463,9 @@ export default function InteractiveGlobe() {
     container.addEventListener('wheel', onWheel, { passive: false });
     container.addEventListener('touchstart', onTouchStart, { passive: true });
     container.addEventListener('touchmove', onTouchMove, { passive: true });
+    container.addEventListener('touchend', onTouchEnd, { passive: true });
+    window.addEventListener('atlas:globe-zoom', onGlobeZoom);
+    window.addEventListener('atlas:globe-reset', onGlobeReset);
 
     // Handle Window Resize
     const handleResize = () => {
@@ -461,6 +541,7 @@ export default function InteractiveGlobe() {
       } else {
         setClickedSpot(null);
         clearActiveTargetPin();
+        setSelectedLocation(null);
       }
     };
 
@@ -550,6 +631,9 @@ export default function InteractiveGlobe() {
       container.removeEventListener('wheel', onWheel);
       container.removeEventListener('touchstart', onTouchStart);
       container.removeEventListener('touchmove', onTouchMove);
+      container.removeEventListener('touchend', onTouchEnd);
+      window.removeEventListener('atlas:globe-zoom', onGlobeZoom);
+      window.removeEventListener('atlas:globe-reset', onGlobeReset);
       window.removeEventListener('resize', handleResize);
       if (container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);
@@ -603,6 +687,15 @@ export default function InteractiveGlobe() {
       headMesh.userData = { location, markerType, count, photo, rating, category };
       markerSubGroup.add(headMesh);
       markerHitMeshesRef.current.push(headMesh);
+
+      // 2b. Invisible Large Touch Hit Sphere (radius 9.0) for effortless finger tapping on mobile
+      const touchHitGeo = new THREE.SphereGeometry(9.0, 8, 8);
+      const touchHitMat = new THREE.MeshBasicMaterial({ visible: false });
+      const touchHitMesh = new THREE.Mesh(touchHitGeo, touchHitMat);
+      touchHitMesh.position.y = stemHeight + headRadius;
+      touchHitMesh.userData = { location, markerType, count, photo, rating, category };
+      markerSubGroup.add(touchHitMesh);
+      markerHitMeshesRef.current.push(touchHitMesh);
 
       // 3. Thick Black Pixel Edge Framing on Gem Head
       const wireGeo = new THREE.WireframeGeometry(headGeo);
@@ -661,9 +754,16 @@ export default function InteractiveGlobe() {
   };
 
   return (
-    <div className="relative w-full h-full min-h-[500px] flex-1 overflow-hidden select-none bg-[#fdf4dc]">
+    <div
+      className="relative w-full h-full min-h-[500px] flex-1 overflow-hidden select-none bg-[#fdf4dc] touch-none"
+      style={{ touchAction: 'none' }}
+    >
       {/* 3D WebGL Canvas Container */}
-      <div ref={containerRef} className="w-full h-full min-h-[500px] cursor-grab active:cursor-grabbing" />
+      <div
+        ref={containerRef}
+        className="w-full h-full min-h-[500px] cursor-grab active:cursor-grabbing touch-none"
+        style={{ touchAction: 'none' }}
+      />
 
       {/* Hover Experience Preview Tooltip Card (User Memory) */}
       {hoveredLocation && !clickedSpot && (
