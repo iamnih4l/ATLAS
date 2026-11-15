@@ -249,32 +249,58 @@ Open **[http://localhost:3000](http://localhost:3000)** in your browser, pick a 
 
 ---
 
-## 🧪 Verification Matrix
+## 🎒 The Explorer's Secret Field Log & Easter Eggs
 
-Every release is validated against 20 automated & manual test scenarios:
+> *"The world is too big to stay in one place, and too small to ever lose your way."* — **Pip the Scout 🎒**
 
 ```
-[✓] TEST 01: User registration, Supabase authentication & session persistence
-[✓] TEST 02: Password visibility toggle (Eye/EyeOff) & accessible form semantics
-[✓] TEST 03: Email verification workflow & unconfirmed account guidance
-[✓] TEST 04: Zero-friction guest explorer mode with cookie bridge
-[✓] TEST 05: Cinematic pixel-art flight manifest loading experience (/loading)
-[✓] TEST 06: Real-time geocoding search via Nominatim
-[✓] TEST 07: Experience creation with multi-photo uploads & half-star ratings
-[✓] TEST 08: Three.js Cartesian coordinate spherical marker projection
-[✓] TEST 09: Fly-to-coordinate camera interpolation & detail drawer
-[✓] TEST 10: Spatial multi-tenancy (multiple memories per location)
-[✓] TEST 11: Client-side EXIF GPS parsing via exifr
-[✓] TEST 12: Google Drive cloud photo import flow
-[✓] TEST 13: Google Gemini Orion conversational AI integration
-[✓] TEST 14: In-app recommendation details modal with safe Google Maps lookup
-[✓] TEST 15: AI recommendation to wishlist conversion
-[✓] TEST 16: Distinct violet globe styling for wishlist items
-[✓] TEST 17: "Done! Record It" bucket list resolution
-[✓] TEST 18: Touch-first mobile bottom navigation (MobileBottomNav)
-[✓] TEST 19: Mobile responsiveness across 320px, 375px, 414px, and 768px viewports
-[✓] TEST 20: Row Level Security user data isolation & PostGIS protection
+ ____________________________________________________________________
+|  ✈️  ATLAS OFFICIAL EXPEDITION DISPATCH                           |
+|  "WANDER OFTEN. WONDER ALWAYS."                   ┌─────────────┐  |
+|                                                   │  [★ ATLAS ] │  |
+|  To: Any Curious Wanderer                         │  [ AIRMAIL] │  |
+|  From: Orbit (Altitude 400 km)                    └─────────────┘  |
+|  Status: Daylight Earth Online ☀️                                  |
+|  Destination: Wherever your heart beats faster.                    |
+|____________________________________________________________________|
 ```
+
+### 🗺️ Mystery Coordinates (Search or Fly to These in ATLAS!)
+Paste or search these exact locations in Spotlight Search (`⌘K` or the top Search pill) to trigger special viewpoints & Orion notes:
+
+- 🗻 **Mount Fuji Sunrise Ridge, Japan** — `35.3606° N, 138.7274° E`  
+  *Tip: The 3D camera locks directly into the volcanic rim above the sea of clouds.*
+- 🪂 **The Palm Jumeirah Dropzone, Dubai** — `25.1124° N, 55.1390° E`  
+  *Pip says: "Whoa, Dubai! Are we jumping out of an airplane today?! 🪂☀️"*
+- 🌌 **Reykjavík Aurora Fjord, Iceland** — `64.1466° N, 21.9426° W`  
+  *Where green solar winds dance over black volcanic beaches.*
+- 🗿 **Ahu Tongariki, Rapa Nui (Easter Island)** — `-27.1258° S, -109.2774° W`  
+  *Fifteen monolithic stone giants facing inward toward the sunrise over the Pacific.*
+- 🌊 **Osprey Reef Outer Wall, Australia** — `-16.8500° S, 146.2000° E`  
+  *Ancient coral bommies glowing with nocturnal bioluminescent plankton under UV dive torches.*
+- 🏔️ **Matterhorn Hörnli Ridge, Switzerland** — `45.9763° N, 7.6586° E`  
+  *The pyramid peak that inspired countless chocolate bars and mountaineering legends.*
+
+---
+
+### 🎒 Pip's Golden Rules of Travel
+1. **Always take the window seat.** The Earth looks infinitely cooler when you can watch coastlines curve below you.
+2. **Follow the grandmothers.** If a street stall in Hanoi or Oaxaca has a line of local matriarchs waiting, join that queue immediately without asking questions.
+3. **Drop the pin before you leave.** That tiny hole-in-the-wall jazz bar in Tokyo? You *will* forget its name tomorrow unless you log it in your ATLAS journal right now.
+4. **Half-stars exist for a reason.** That 4.5-star ramen joint was life-changing, but the plastic stool broke halfway through? Half-star precision honors the truth.
+5. **A passport is a sketchbook, not a museum relic.** Let it get coffee-stained, dog-eared, and overflowing with stamps.
+
+---
+
+### 🧭 The Great Wanderer's Quest Checklist
+Are you a true cartographer? Check off these expeditions in your journal:
+
+- [ ] **First Coordinate**: Drop your very first memory pin on your hometown.
+- [ ] **Photo Time Machine**: Upload a raw photo from your camera roll and let `exifr` detect the GPS automatically.
+- [ ] **Orion's Challenge**: Ask Orion for a recommendation that pushes you outside your comfort zone.
+- [ ] **Midnight Dream**: Pin a destination across an ocean to your Wishlist in pulsing violet.
+- [ ] **The Full Orbit**: Spin the 3D Earth with a flick of your finger on mobile and watch the continents blur.
+- [ ] **The Circle Closes**: Return from an expedition and tap *"Done! Record It"* to convert a dream into a golden memory.
 
 ---
 
