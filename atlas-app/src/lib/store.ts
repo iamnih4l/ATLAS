@@ -1,6 +1,15 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Location, Experience, WishlistItem, AIRecommendation, Category } from '@/types';
+import {
+  Location,
+  Experience,
+  WishlistItem,
+  AIRecommendation,
+  Category,
+  Adventure,
+  AdventureDestination,
+  AIConversationThread,
+} from '@/types';
 
 export const DEFAULT_CATEGORIES: Category[] = [
   { id: '1', name: 'Adventure', slug: 'adventure', icon: '🏔️', is_default: true, user_id: null, created_at: '' },
@@ -88,6 +97,27 @@ interface AtlasState {
 
   setRecommendations: (recs: AIRecommendation[]) => void;
   saveRecommendationToWishlist: (recOrId: string | AIRecommendation) => void;
+
+  // Adventures & Itineraries
+  adventures: Adventure[];
+  selectedAdventure: Adventure | null;
+  setAdventures: (adventures: Adventure[]) => void;
+  addAdventure: (adventure: Adventure) => void;
+  updateAdventure: (id: string, updates: Partial<Adventure>) => void;
+  deleteAdventure: (id: string) => void;
+  setSelectedAdventure: (adventure: Adventure | null) => void;
+  addDestinationToAdventure: (adventureId: string, destination: AdventureDestination) => void;
+  updateAdventureDestination: (adventureId: string, destId: string, updates: Partial<AdventureDestination>) => void;
+  deleteAdventureDestination: (adventureId: string, destId: string) => void;
+
+  // AI Conversations
+  conversations: AIConversationThread[];
+  activeConversationId: string | null;
+  setConversations: (conversations: AIConversationThread[]) => void;
+  saveConversation: (conversation: AIConversationThread) => void;
+  setActiveConversationId: (id: string | null) => void;
+  deleteConversation: (id: string) => void;
+
   resetStore: () => void;
 }
 
@@ -130,6 +160,10 @@ export const useAtlasStore = create<AtlasState>()(
       wishlistItems: [],
       categories: DEFAULT_CATEGORIES,
       recommendations: [],
+      adventures: [],
+      selectedAdventure: null,
+      conversations: [],
+      activeConversationId: null,
 
       setLocations: (locations) => set({ locations }),
       addLocation: (location) => {
@@ -263,12 +297,144 @@ export const useAtlasStore = create<AtlasState>()(
         }));
       },
 
+      // Adventures Actions
+      setAdventures: (adventures) => set({ adventures }),
+      addAdventure: (adventure) => {
+        // Also ensure any destination locations are registered in locations
+        if (adventure.destinations) {
+          adventure.destinations.forEach((dest) => {
+            if (dest.latitude !== undefined && dest.longitude !== undefined) {
+              get().addLocation({
+                id: dest.location_id || `loc-dest-${dest.id}`,
+                name: dest.name,
+                city: dest.city || null,
+                country: dest.country,
+                venue: null,
+                latitude: dest.latitude,
+                longitude: dest.longitude,
+                place_id: null,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              });
+            }
+          });
+        }
+        set((state) => ({
+          adventures: [adventure, ...state.adventures.filter((a) => a.id !== adventure.id)],
+          selectedAdventure: adventure,
+        }));
+      },
+      updateAdventure: (id, updates) => {
+        set((state) => ({
+          adventures: state.adventures.map((a) =>
+            a.id === id ? { ...a, ...updates, updated_at: new Date().toISOString() } : a
+          ),
+          selectedAdventure:
+            state.selectedAdventure?.id === id
+              ? { ...state.selectedAdventure, ...updates, updated_at: new Date().toISOString() }
+              : state.selectedAdventure,
+        }));
+      },
+      deleteAdventure: (id) => {
+        set((state) => ({
+          adventures: state.adventures.filter((a) => a.id !== id),
+          selectedAdventure: state.selectedAdventure?.id === id ? null : state.selectedAdventure,
+        }));
+      },
+      setSelectedAdventure: (adventure) => set({ selectedAdventure: adventure }),
+      addDestinationToAdventure: (adventureId, destination) => {
+        set((state) => {
+          const adventure = state.adventures.find((a) => a.id === adventureId);
+          if (!adventure) return state;
+          const currentDestinations = adventure.destinations || [];
+          const updatedDestinations = [...currentDestinations, destination].sort(
+            (a, b) => a.order_index - b.order_index
+          );
+          const updatedAdventure = {
+            ...adventure,
+            destinations: updatedDestinations,
+            updated_at: new Date().toISOString(),
+          };
+          return {
+            adventures: state.adventures.map((a) => (a.id === adventureId ? updatedAdventure : a)),
+            selectedAdventure:
+              state.selectedAdventure?.id === adventureId ? updatedAdventure : state.selectedAdventure,
+          };
+        });
+      },
+      updateAdventureDestination: (adventureId, destId, updates) => {
+        set((state) => {
+          const adventure = state.adventures.find((a) => a.id === adventureId);
+          if (!adventure || !adventure.destinations) return state;
+          const updatedDestinations = adventure.destinations.map((d) =>
+            d.id === destId ? { ...d, ...updates, updated_at: new Date().toISOString() } : d
+          );
+          const updatedAdventure = {
+            ...adventure,
+            destinations: updatedDestinations,
+            updated_at: new Date().toISOString(),
+          };
+          return {
+            adventures: state.adventures.map((a) => (a.id === adventureId ? updatedAdventure : a)),
+            selectedAdventure:
+              state.selectedAdventure?.id === adventureId ? updatedAdventure : state.selectedAdventure,
+          };
+        });
+      },
+      deleteAdventureDestination: (adventureId, destId) => {
+        set((state) => {
+          const adventure = state.adventures.find((a) => a.id === adventureId);
+          if (!adventure || !adventure.destinations) return state;
+          const updatedDestinations = adventure.destinations.filter((d) => d.id !== destId);
+          const updatedAdventure = {
+            ...adventure,
+            destinations: updatedDestinations,
+            updated_at: new Date().toISOString(),
+          };
+          return {
+            adventures: state.adventures.map((a) => (a.id === adventureId ? updatedAdventure : a)),
+            selectedAdventure:
+              state.selectedAdventure?.id === adventureId ? updatedAdventure : state.selectedAdventure,
+          };
+        });
+      },
+
+      // Conversations Actions
+      setConversations: (conversations) => set({ conversations }),
+      saveConversation: (conversation) => {
+        set((state) => {
+          const existingIdx = state.conversations.findIndex((c) => c.id === conversation.id);
+          let newConversations: AIConversationThread[];
+          if (existingIdx >= 0) {
+            newConversations = [...state.conversations];
+            newConversations[existingIdx] = conversation;
+          } else {
+            newConversations = [conversation, ...state.conversations];
+          }
+          return {
+            conversations: newConversations,
+            activeConversationId: conversation.id,
+          };
+        });
+      },
+      setActiveConversationId: (id) => set({ activeConversationId: id }),
+      deleteConversation: (id) => {
+        set((state) => ({
+          conversations: state.conversations.filter((c) => c.id !== id),
+          activeConversationId: state.activeConversationId === id ? null : state.activeConversationId,
+        }));
+      },
+
       resetStore: () => {
         set({
           locations: [],
           experiences: [],
           wishlistItems: [],
           recommendations: [],
+          adventures: [],
+          selectedAdventure: null,
+          conversations: [],
+          activeConversationId: null,
           selectedLocation: null,
           flyToTarget: null,
           editingExperience: null,
@@ -290,6 +456,8 @@ export const useAtlasStore = create<AtlasState>()(
         experiences: state.experiences,
         wishlistItems: state.wishlistItems,
         categories: state.categories,
+        adventures: state.adventures,
+        conversations: state.conversations,
       }),
     }
   )

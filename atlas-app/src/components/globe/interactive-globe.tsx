@@ -46,6 +46,9 @@ export default function InteractiveGlobe() {
     locations,
     experiences,
     wishlistItems,
+    adventures,
+    selectedAdventure,
+    setSelectedAdventure,
     filterType,
     selectedCategory,
     selectedYear,
@@ -82,6 +85,7 @@ export default function InteractiveGlobe() {
   const earthMatRef = useRef<THREE.MeshPhongMaterial | null>(null);
   const earthMeshRef = useRef<THREE.Mesh | null>(null);
   const userMarkersGroupRef = useRef<THREE.Group | null>(null);
+  const adventureArcsGroupRef = useRef<THREE.Group | null>(null);
   const activePinRef = useRef<THREE.Group | null>(null);
   const markerHitMeshesRef = useRef<THREE.Mesh[]>([]);
 
@@ -98,26 +102,54 @@ export default function InteractiveGlobe() {
   // Filter visible user locations based on active filters
   const visibleUserMarkers = useMemo(() => {
     // Collect all unique locations from locations list and directly attached objects
-    const locMap = new Map<string, Location>();
+    const locMap = new Map<string, { loc: Location; adventure?: any; adventureDest?: any }>();
     locations.forEach((loc) => {
-      if (loc && loc.id) locMap.set(loc.id, loc);
+      if (loc && loc.id) locMap.set(loc.id, { loc });
     });
 
     wishlistItems.forEach((w) => {
       if (w.location && w.location.id && !locMap.has(w.location.id)) {
-        locMap.set(w.location.id, w.location);
+        locMap.set(w.location.id, { loc: w.location });
       }
     });
 
     experiences.forEach((e) => {
       if (e.location && e.location.id && !locMap.has(e.location.id)) {
-        locMap.set(e.location.id, e.location);
+        locMap.set(e.location.id, { loc: e.location });
       }
     });
 
-    const allLocations = Array.from(locMap.values());
+    // Also register adventure destinations so planned journeys appear on the globe!
+    adventures.forEach((adv) => {
+      if (adv.destinations) {
+        adv.destinations.forEach((dest) => {
+          const destLocId = dest.location_id || `loc-dest-${dest.id}`;
+          const existing = locMap.get(destLocId);
+          if (existing) {
+            existing.adventure = adv;
+            existing.adventureDest = dest;
+          } else {
+            const loc: Location = {
+              id: destLocId,
+              name: dest.name,
+              city: dest.city || null,
+              country: dest.country,
+              venue: null,
+              latitude: dest.latitude,
+              longitude: dest.longitude,
+              place_id: null,
+              created_at: dest.created_at || new Date().toISOString(),
+              updated_at: dest.updated_at || new Date().toISOString(),
+            };
+            locMap.set(destLocId, { loc, adventure: adv, adventureDest: dest });
+          }
+        });
+      }
+    });
 
-    return allLocations.map((loc) => {
+    const allEntries = Array.from(locMap.values());
+
+    return allEntries.map(({ loc, adventure, adventureDest }) => {
       const locExperiences = experiences.filter((e) => {
         if (e.location_id !== loc.id && e.location?.id !== loc.id) return false;
         if (selectedCategory && e.category_id !== selectedCategory) return false;
@@ -131,20 +163,27 @@ export default function InteractiveGlobe() {
         return true;
       });
 
-      const hasExperienced = locExperiences.length > 0;
-      const hasWishlist = locWishlist.length > 0;
+      const hasExperienced = locExperiences.length > 0 || (adventure && adventure.status === 'completed') || adventureDest?.is_completed;
+      const hasWishlist = locWishlist.length > 0 || (adventure && adventure.status === 'dreaming');
+      const hasPlannedAdventure = adventure && (adventure.status === 'planned' || adventure.status === 'upcoming' || adventure.status === 'in_progress');
 
       let shouldShow = false;
-      let markerType: 'experienced' | 'wishlist' = 'experienced';
+      let markerType: 'experienced' | 'wishlist' | 'adventure' = 'experienced';
 
       if (filterType === 'all') {
-        shouldShow = hasExperienced || hasWishlist;
-        markerType = hasExperienced ? 'experienced' : 'wishlist';
+        shouldShow = hasExperienced || hasWishlist || !!hasPlannedAdventure;
+        if (hasPlannedAdventure) {
+          markerType = 'adventure';
+        } else if (hasExperienced) {
+          markerType = 'experienced';
+        } else {
+          markerType = 'wishlist';
+        }
       } else if (filterType === 'experienced') {
         shouldShow = hasExperienced;
         markerType = 'experienced';
       } else if (filterType === 'wishlist') {
-        shouldShow = hasWishlist;
+        shouldShow = hasWishlist || (adventure && adventure.status === 'dreaming');
         markerType = 'wishlist';
       }
 
@@ -155,18 +194,21 @@ export default function InteractiveGlobe() {
         location: loc,
         shouldShow,
         markerType,
-        count: locExperiences.length + locWishlist.length,
+        adventure,
+        adventureDest,
+        count: locExperiences.length + locWishlist.length + (adventureDest ? 1 : 0),
         experiences: locExperiences,
         photo:
           primaryExp?.cover_image_url ||
           primaryExp?.media?.[0]?.file_url ||
           primaryWish?.reference_image_url ||
+          adventure?.cover_image_url ||
           undefined,
         rating: primaryExp?.rating || undefined,
         category: primaryExp?.category_id || primaryWish?.category_id || undefined,
       };
     }).filter((m) => m.shouldShow);
-  }, [locations, experiences, wishlistItems, filterType, selectedCategory, selectedYear]);
+  }, [locations, experiences, wishlistItems, adventures, filterType, selectedCategory, selectedYear]);
 
   // ============================================================================
   // 4. INITIALIZE THREE.JS SCENE ON MOUNT
@@ -267,10 +309,15 @@ export default function InteractiveGlobe() {
     const cloudShadowMesh = new THREE.Mesh(cloudShadowGeo, cloudShadowMat);
     earthGroup.add(cloudShadowMesh);
 
-    // 14. Groups for User Markers & Active Target Pin
+    // 14. Groups for User Markers, Active Target Pin & Adventure Itinerary Arcs
     const userMarkersGroup = new THREE.Group();
     earthGroup.add(userMarkersGroup);
     userMarkersGroupRef.current = userMarkersGroup;
+
+    const adventureArcsGroup = new THREE.Group();
+    adventureArcsGroup.name = 'AdventureArcs';
+    earthGroup.add(adventureArcsGroup);
+    adventureArcsGroupRef.current = adventureArcsGroup;
 
     const activePinGroup = new THREE.Group();
     earthGroup.add(activePinGroup);
@@ -493,6 +540,9 @@ export default function InteractiveGlobe() {
         if (hit.userData?.location) {
           const loc = hit.userData.location as Location;
           setSelectedLocation(loc);
+          if (hit.userData.adventure) {
+            setSelectedAdventure(hit.userData.adventure);
+          }
           setClickedSpot(null);
           clearActiveTargetPin();
 
@@ -653,7 +703,7 @@ export default function InteractiveGlobe() {
 
     const earthRadius = 100;
 
-    visibleUserMarkers.forEach(({ location, markerType, count, photo, rating, category }) => {
+    visibleUserMarkers.forEach(({ location, markerType, count, photo, rating, category, adventure, adventureDest }) => {
       const pos = latLongToVector3(location.latitude, location.longitude, earthRadius);
 
       const markerSubGroup = new THREE.Group();
@@ -661,11 +711,21 @@ export default function InteractiveGlobe() {
       markerSubGroup.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), pos.clone().normalize());
 
       const isExperienced = markerType === 'experienced';
-      const pinColor = isExperienced ? 0xF04432 : 0xFFD45A; // Tomato Red or Sunflower Yellow
-      const emissiveColor = isExperienced ? 0x991b1b : 0xb45309;
+      const isAdventure = markerType === 'adventure';
+
+      let pinColor = 0xFFD45A; // Sunflower Yellow
+      let emissiveColor = 0xb45309;
+
+      if (isExperienced) {
+        pinColor = 0xF04432; // Tomato Red
+        emissiveColor = 0x991b1b;
+      } else if (isAdventure) {
+        pinColor = 0x6425F5; // Celestial Royal Purple
+        emissiveColor = 0x38bdf8; // Cyan glowing accent
+      }
 
       // 1. Chunky 3D Needle Stem
-      const stemHeight = 7.5;
+      const stemHeight = isAdventure ? 9.0 : 7.5;
       const stemGeo = new THREE.BoxGeometry(0.8, stemHeight, 0.8);
       const stemMat = new THREE.MeshBasicMaterial({ color: 0x171313 });
       const stemMesh = new THREE.Mesh(stemGeo, stemMat);
@@ -673,27 +733,27 @@ export default function InteractiveGlobe() {
       markerSubGroup.add(stemMesh);
 
       // 2. Chunky 3D Gem / Diamond Marker Head
-      const headRadius = isExperienced ? 3.4 : 3.0;
+      const headRadius = isAdventure ? 3.6 : isExperienced ? 3.4 : 3.0;
       const headGeo = new THREE.OctahedronGeometry(headRadius, 0);
       const headMat = new THREE.MeshStandardMaterial({
         color: pinColor,
         emissive: emissiveColor,
-        emissiveIntensity: 0.75,
+        emissiveIntensity: isAdventure ? 0.9 : 0.75,
         roughness: 0.15,
       });
       const headMesh = new THREE.Mesh(headGeo, headMat);
       headMesh.position.y = stemHeight + headRadius;
       headMesh.rotation.y = Math.PI / 4;
-      headMesh.userData = { location, markerType, count, photo, rating, category };
+      headMesh.userData = { location, markerType, count, photo, rating, category, adventure, adventureDest };
       markerSubGroup.add(headMesh);
       markerHitMeshesRef.current.push(headMesh);
 
       // 2b. Invisible Large Touch Hit Sphere (radius 9.0) for effortless finger tapping on mobile
-      const touchHitGeo = new THREE.SphereGeometry(9.0, 8, 8);
+      const touchHitGeo = new THREE.SphereGeometry(9.5, 8, 8);
       const touchHitMat = new THREE.MeshBasicMaterial({ visible: false });
       const touchHitMesh = new THREE.Mesh(touchHitGeo, touchHitMat);
       touchHitMesh.position.y = stemHeight + headRadius;
-      touchHitMesh.userData = { location, markerType, count, photo, rating, category };
+      touchHitMesh.userData = { location, markerType, count, photo, rating, category, adventure, adventureDest };
       markerSubGroup.add(touchHitMesh);
       markerHitMeshesRef.current.push(touchHitMesh);
 
@@ -708,6 +768,73 @@ export default function InteractiveGlobe() {
       userMarkersGroup.add(markerSubGroup);
     });
   }, [visibleUserMarkers]);
+
+  // ============================================================================
+  // 5b. REACTIVE ADVENTURE ITINERARY ARCS
+  // ============================================================================
+  useEffect(() => {
+    if (!adventureArcsGroupRef.current) return;
+    const arcGroup = adventureArcsGroupRef.current;
+    arcGroup.clear();
+
+    const earthRadius = 100;
+
+    // Prioritize selected adventure if multi-stop, or draw all planned/in_progress adventures
+    const adventuresToDraw =
+      selectedAdventure && selectedAdventure.destinations && selectedAdventure.destinations.length >= 2
+        ? [selectedAdventure]
+        : adventures.filter(
+            (a) =>
+              (a.status === 'planned' || a.status === 'upcoming' || a.status === 'in_progress') &&
+              a.destinations &&
+              a.destinations.length >= 2
+          );
+
+    adventuresToDraw.forEach((adv) => {
+      const sortedStops = [...(adv.destinations || [])].sort((a, b) => a.order_index - b.order_index);
+      for (let i = 0; i < sortedStops.length - 1; i++) {
+        const from = sortedStops[i];
+        const to = sortedStops[i + 1];
+
+        if (
+          from.latitude === undefined ||
+          from.longitude === undefined ||
+          to.latitude === undefined ||
+          to.longitude === undefined
+        ) {
+          continue;
+        }
+
+        const v1 = latLongToVector3(from.latitude, from.longitude, earthRadius);
+        const v2 = latLongToVector3(to.latitude, to.longitude, earthRadius);
+        const numPoints = 40;
+        const points: THREE.Vector3[] = [];
+        const angularDist = v1.angleTo(v2);
+
+        for (let j = 0; j <= numPoints; j++) {
+          const t = j / numPoints;
+          const p = new THREE.Vector3().copy(v1).lerp(v2, t).normalize();
+          const altitude =
+            earthRadius + 0.9 + Math.sin(t * Math.PI) * Math.min(16, Math.max(3, angularDist * 12));
+          p.multiplyScalar(altitude);
+          points.push(p);
+        }
+
+        const geo = new THREE.BufferGeometry().setFromPoints(points);
+        const isSelected = selectedAdventure?.id === adv.id;
+        const lineMat = new THREE.LineDashedMaterial({
+          color: isSelected ? 0x6425F5 : 0x38bdf8,
+          dashSize: 2.5,
+          gapSize: 1.2,
+          linewidth: 2,
+        });
+
+        const line = new THREE.Line(geo, lineMat);
+        line.computeLineDistances();
+        arcGroup.add(line);
+      }
+    });
+  }, [adventures, selectedAdventure]);
 
   // ============================================================================
   // 6. REACTIVE CAMERA FLY-TO

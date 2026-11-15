@@ -18,6 +18,7 @@ export function MobileBottomNav() {
   const {
     experiences,
     wishlistItems,
+    adventures,
     setExperienceModalOpen,
     setEditingExperience,
   } = useAtlasStore();
@@ -50,10 +51,11 @@ export function MobileBottomNav() {
       activeColor: 'bg-[#6425F5] text-white',
     },
     {
-      name: 'Wishlist',
+      name: 'Adventures',
       href: '/wishlist',
       icon: BookmarkCheck,
-      badge: wishlistItems.filter((w) => !w.is_completed).length || null,
+      badge:
+        (adventures?.length || 0) + wishlistItems.filter((w) => !w.is_completed).length || null,
       activeColor: 'bg-[#10B981] text-white',
     },
   ];

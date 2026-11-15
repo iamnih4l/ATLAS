@@ -30,6 +30,7 @@ export function Sidebar() {
     setExperienceModalOpen,
     experiences,
     wishlistItems,
+    adventures,
   } = useAtlasStore();
 
   const navItems = [
@@ -62,10 +63,10 @@ export function Sidebar() {
       color: 'text-violet-500',
     },
     {
-      name: 'Wishlist',
+      name: 'Adventures',
       href: '/wishlist',
       icon: BookmarkCheck,
-      badge: wishlistItems.filter((w) => !w.is_completed).length,
+      badge: (adventures?.length || 0) + wishlistItems.filter((w) => !w.is_completed).length || null,
       color: 'text-rose-500',
     },
     {

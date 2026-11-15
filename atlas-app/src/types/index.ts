@@ -200,12 +200,114 @@ export interface GlobeMarker {
 }
 
 // AI types
+export type AdventureIntent = 
+  | 'bucket_list'
+  | 'trip_planning'
+  | 'explicit_save'
+  | 'completed_experience'
+  | 'general_chat';
+
+export type AdventureStatus = 
+  | 'dreaming' 
+  | 'planned' 
+  | 'upcoming' 
+  | 'in_progress' 
+  | 'completed' 
+  | 'archived';
+
+export interface StructuredItineraryStop {
+  name: string;
+  city?: string | null;
+  country: string;
+  latitude?: number;
+  longitude?: number;
+  day_number?: number | null;
+  target_date?: string | null;
+  activities: string[];
+  notes?: string | null;
+}
+
+export interface StructuredAdventurePayload {
+  intent: AdventureIntent;
+  title: string;
+  description?: string;
+  status: AdventureStatus;
+  estimated_budget?: number;
+  currency?: string;
+  target_start_date?: string;
+  target_end_date?: string;
+  stops: StructuredItineraryStop[];
+  detected_experience?: {
+    title: string;
+    location_name: string;
+    city?: string;
+    country: string;
+    latitude?: number;
+    longitude?: number;
+    date?: string;
+    rating?: number;
+    notes?: string;
+  };
+}
+
+export interface AdventureDestination {
+  id: string;
+  adventure_id: string;
+  location_id?: string | null;
+  name: string;
+  city?: string | null;
+  country: string;
+  latitude: number;
+  longitude: number;
+  order_index: number;
+  day_number?: number | null;
+  target_date?: string | null;
+  notes?: string | null;
+  activities?: string[];
+  is_completed?: boolean;
+  completed_experience_id?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  location?: Location;
+}
+
+export interface Adventure {
+  id: string;
+  user_id: string;
+  title: string;
+  description?: string | null;
+  status: AdventureStatus;
+  target_start_date?: string | null;
+  target_end_date?: string | null;
+  estimated_budget?: number | null;
+  currency?: string;
+  notes?: string | null;
+  cover_image_url?: string | null;
+  is_bucket_list?: boolean;
+  created_at: string;
+  updated_at: string;
+  destinations?: AdventureDestination[];
+  conversation_id?: string | null;
+}
+
 export interface AIMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   recommendations?: AIRecommendation[];
+  structured_data?: StructuredAdventurePayload | null;
+  adventure_preview?: StructuredAdventurePayload | null;
   timestamp: string;
+}
+
+export interface AIConversationThread {
+  id: string;
+  user_id?: string;
+  title: string;
+  adventure_id?: string | null;
+  created_at: string;
+  updated_at: string;
+  messages: AIMessage[];
 }
 
 export interface AIConversation {

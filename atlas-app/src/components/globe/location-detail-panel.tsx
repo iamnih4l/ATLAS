@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { useAtlasStore } from '@/lib/store';
 import { StarRating } from '@/components/ui/star-rating';
 import {
@@ -11,6 +12,9 @@ import {
   BookmarkCheck,
   ChevronRight,
   FolderOpen,
+  Compass,
+  Sparkles,
+  Route,
 } from 'lucide-react';
 import { WashiTape, PassportStamp } from '@/components/ui/doodles';
 import { PixelCamera } from '@/components/ui/pixel-stickers';
@@ -21,6 +25,8 @@ export function LocationDetailPanel() {
     setSelectedLocation,
     experiences,
     wishlistItems,
+    adventures,
+    setSelectedAdventure,
     setEditingExperience,
     setEditingWishlistItem,
   } = useAtlasStore();
@@ -36,6 +42,20 @@ export function LocationDetailPanel() {
       (w.location_id === selectedLocation.id || w.location?.id === selectedLocation.id) &&
       !w.is_completed
   );
+
+  // Check if this location belongs to an adventure itinerary stop
+  const matchedAdventureInfo = adventures
+    .map((adv) => {
+      const dest = adv.destinations?.find(
+        (d) =>
+          d.location_id === selectedLocation.id ||
+          d.id === selectedLocation.id ||
+          (Math.abs(d.latitude - selectedLocation.latitude) < 0.005 &&
+            Math.abs(d.longitude - selectedLocation.longitude) < 0.005)
+      );
+      return dest ? { adventure: adv, destination: dest } : null;
+    })
+    .find(Boolean);
 
   const primaryPhoto = locationExperiences.find(
     (e) => e.cover_image_url || e.media?.[0]?.file_url
@@ -159,6 +179,66 @@ export function LocationDetailPanel() {
 
         {/* Scrollable Content Area */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {/* Active Adventure Itinerary Section (if linked to an adventure) */}
+          {matchedAdventureInfo && (
+            <div className="p-3.5 bg-[#6425F5]/10 border-2 border-[#171313] rounded-2xl shadow-pop-sm relative">
+              <div className="flex items-center justify-between mb-2">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#6425F5] text-white border border-[#171313]">
+                  {matchedAdventureInfo.adventure.status} Adventure
+                </span>
+                <span className="text-[11px] font-mono font-black text-[#6425F5]">
+                  Stop #{matchedAdventureInfo.destination.order_index + 1}
+                  {matchedAdventureInfo.destination.day_number
+                    ? ` • Day ${matchedAdventureInfo.destination.day_number}`
+                    : ''}
+                </span>
+              </div>
+
+              <h4 className="text-xs font-black text-[#171313] line-clamp-1">
+                {matchedAdventureInfo.adventure.title}
+              </h4>
+
+              {matchedAdventureInfo.destination.notes && (
+                <p className="text-xs text-[#171313]/80 font-medium mt-1 leading-snug">
+                  {matchedAdventureInfo.destination.notes}
+                </p>
+              )}
+
+              {matchedAdventureInfo.destination.activities &&
+                matchedAdventureInfo.destination.activities.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {matchedAdventureInfo.destination.activities.map((act, idx) => (
+                      <span
+                        key={idx}
+                        className="text-[10px] font-black bg-white border border-[#171313] px-2 py-0.5 rounded-md text-[#171313]"
+                      >
+                        ✦ {act}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+              <div className="flex items-center gap-2 mt-3 pt-2 border-t border-[#171313]/15">
+                <Link
+                  href={`/discover?adventure=${matchedAdventureInfo.adventure.id}`}
+                  onClick={() => setSelectedAdventure(matchedAdventureInfo.adventure)}
+                  className="flex-1 py-1.5 px-2.5 rounded-xl bg-[#6425F5] hover:bg-[#521ec9] text-white text-[11px] font-black text-center border-2 border-[#171313] shadow-pop-xs transition-all flex items-center justify-center gap-1"
+                >
+                  <Sparkles className="w-3 h-3 stroke-[2.5]" />
+                  <span>Plan with Orion</span>
+                </Link>
+                <Link
+                  href={`/wishlist?tab=adventures&id=${matchedAdventureInfo.adventure.id}`}
+                  onClick={() => setSelectedAdventure(matchedAdventureInfo.adventure)}
+                  className="py-1.5 px-2.5 rounded-xl bg-white hover:bg-[#FFD45A] text-[#171313] text-[11px] font-black border-2 border-[#171313] shadow-pop-xs transition-all flex items-center justify-center gap-1"
+                >
+                  <Route className="w-3 h-3 stroke-[2.5]" />
+                  <span>Itinerary</span>
+                </Link>
+              </div>
+            </div>
+          )}
+
           {/* Completed Experiences List */}
           <div>
             <div className="flex items-center justify-between mb-2">

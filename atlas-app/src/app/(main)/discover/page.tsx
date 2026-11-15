@@ -1,12 +1,18 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAtlasStore } from '@/lib/store';
+import { getRecommendationsForMode } from '@/lib/ai-companion';
 import {
-  getRecommendationsForMode,
-} from '@/lib/ai-companion';
-import { AIRecommendation } from '@/types';
+  AIRecommendation,
+  StructuredAdventurePayload,
+  AdventureIntent,
+  Adventure,
+  AIConversationThread,
+  AIMessage,
+} from '@/types';
 import { cn } from '@/lib/utils';
 import {
   Sparkles,
@@ -19,6 +25,14 @@ import {
   Globe2,
   Search,
   Info,
+  Calendar,
+  Route,
+  History,
+  Plus,
+  Trash2,
+  ArrowRight,
+  Clock,
+  Compass,
 } from 'lucide-react';
 import { Modal } from '@/components/ui/modal';
 import { DoodleSparkle, DoodleUnderline, WashiTape, PassportStamp } from '@/components/ui/doodles';
@@ -26,12 +40,34 @@ import { PixelPlane } from '@/components/ui/pixel-stickers';
 import { StarSpike, JoyBlob } from '@/components/ui/mascot-doodles';
 import { VerifiedStamp, TicketBadge } from '@/components/ui/atlas-illustrations';
 
-export default function DiscoverPage() {
+interface ChatEntry {
+  id: string;
+  role: 'user' | 'orion';
+  content: string;
+  time: string;
+  adventure_preview?: StructuredAdventurePayload | null;
+  intent?: AdventureIntent;
+}
+
+function DiscoverContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const linkedAdventureId = searchParams.get('adventure');
+
   const {
     experiences,
     locations,
-    saveRecommendationToWishlist,
+    wishlistItems,
+    adventures,
+    addAdventure,
+    setSelectedAdventure,
     setFlyToTarget,
+    saveRecommendationToWishlist,
+    conversations,
+    saveConversation,
+    activeConversationId,
+    setActiveConversationId,
+    deleteConversation,
   } = useAtlasStore();
 
   const [activeMode, setActiveMode] = useState<
@@ -41,23 +77,83 @@ export default function DiscoverPage() {
   const [destinationInput, setDestinationInput] = useState('');
   const [recommendations, setRecommendations] = useState<AIRecommendation[]>([]);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+  const [savedAdventureTitles, setSavedAdventureTitles] = useState<Set<string>>(new Set());
   const [selectedRecForDetails, setSelectedRecForDetails] = useState<AIRecommendation | null>(null);
 
-  // Conversational Chat with Orion
-  const [messages, setMessages] = useState<
-    { role: 'user' | 'orion'; content: string; time: string }[]
-  >([
-    {
-      role: 'orion',
-      content:
-        'Hi there! I am Orion, your personal ATLAS travel & adventure companion! 🌟 I study your favorite recorded memories, highest ratings, and bucket list dreams to find verified real-world places you will love. Where do you want to explore next?',
-      time: 'Just now',
-    },
-  ]);
+  // Thread and History State
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [currentThreadId, setCurrentThreadId] = useState<string>(
+    activeConversationId || `thread-${Date.now()}`
+  );
+
+  const initialWelcomeMsg: ChatEntry = {
+    id: 'welcome-msg',
+    role: 'orion',
+    content:
+      'Greetings, explorer! I am Orion, your personal ATLAS travel companion and Adventure Architect! 🌟 I study your memories, rated highlights, and dreams to construct real-world itineraries with verified GPS coordinates. What trip or dream shall we plan today?',
+    time: 'Just now',
+  };
+
+  const [messages, setMessages] = useState<ChatEntry[]>([initialWelcomeMsg]);
   const [chatInput, setChatInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Load recommendations when mode or destination changes
+  // 1. Sync remote conversations on mount
+  useEffect(() => {
+    let isCancelled = false;
+    async function loadThreads() {
+      try {
+        const res = await fetch('/api/ai/conversations');
+        if (res.ok) {
+          const data = await res.json();
+          if (!isCancelled && data.conversations && data.conversations.length > 0) {
+            data.conversations.forEach((conv: AIConversationThread) => {
+              saveConversation(conv);
+            });
+          }
+        }
+      } catch (err) {
+        console.warn('Conversations fetch error (using local cache):', err);
+      }
+    }
+    loadThreads();
+    return () => {
+      isCancelled = true;
+    };
+  }, [saveConversation]);
+
+  // 2. Restore active conversation thread from store if available
+  useEffect(() => {
+    if (activeConversationId) {
+      const found = conversations.find((c) => c.id === activeConversationId);
+      if (found && found.messages && found.messages.length > 0) {
+        setCurrentThreadId(found.id);
+        setMessages(
+          found.messages.map((m) => ({
+            id: m.id,
+            role: m.role === 'assistant' ? 'orion' : 'user',
+            content: m.content,
+            time: m.timestamp || 'Recent',
+            adventure_preview: m.adventure_preview || m.structured_data || null,
+          }))
+        );
+      }
+    }
+  }, [activeConversationId, conversations]);
+
+  // 3. Handle incoming ?adventure= query parameter to resume planning
+  useEffect(() => {
+    if (linkedAdventureId) {
+      const adv = adventures.find((a) => a.id === linkedAdventureId);
+      if (adv) {
+        setSelectedAdventure(adv);
+        setChatInput(`Let's refine the itinerary for "${adv.title}"!`);
+      }
+    }
+  }, [linkedAdventureId, adventures, setSelectedAdventure]);
+
+  // 4. Recommendations loader
   useEffect(() => {
     let isCancelled = false;
     async function fetchRecs() {
@@ -99,6 +195,11 @@ export default function DiscoverPage() {
     };
   }, [activeMode, experiences, locations, destinationInput]);
 
+  // Scroll to bottom of chat
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, isTyping]);
+
   const handleSaveToWishlist = (rec: AIRecommendation) => {
     saveRecommendationToWishlist(rec);
     setSavedIds((prev) => new Set(prev).add(rec.id));
@@ -111,15 +212,57 @@ export default function DiscoverPage() {
         longitude: rec.longitude,
         altitude: 400000,
       });
+      router.push('/globe');
     }
   };
 
+  // Start new chat thread
+  const handleStartNewSession = () => {
+    const newId = `thread-${Date.now()}`;
+    setCurrentThreadId(newId);
+    setActiveConversationId(newId);
+    setMessages([initialWelcomeMsg]);
+    setIsHistoryOpen(false);
+  };
+
+  // Switch to existing thread
+  const handleSwitchThread = (thread: AIConversationThread) => {
+    setCurrentThreadId(thread.id);
+    setActiveConversationId(thread.id);
+    setMessages(
+      thread.messages.map((m) => ({
+        id: m.id,
+        role: m.role === 'assistant' ? 'orion' : 'user',
+        content: m.content,
+        time: m.timestamp || 'Recent',
+        adventure_preview: m.adventure_preview || m.structured_data || null,
+      }))
+    );
+    setIsHistoryOpen(false);
+  };
+
+  // Delete thread
+  const handleDeleteThread = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    deleteConversation(id);
+    try {
+      await fetch(`/api/ai/conversations?id=${id}`, { method: 'DELETE' });
+    } catch (err) {
+      console.warn('Error deleting conversation on server:', err);
+    }
+    if (currentThreadId === id) {
+      handleStartNewSession();
+    }
+  };
+
+  // Send message and get Orion AI response
   const handleSendMessage = async (textToSend?: string) => {
     const text = textToSend || chatInput;
     if (!text.trim()) return;
 
-    const userMsg = {
-      role: 'user' as const,
+    const userMsg: ChatEntry = {
+      id: `user-${Date.now()}`,
+      role: 'user',
       content: text,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
@@ -136,36 +279,79 @@ export default function DiscoverPage() {
         body: JSON.stringify({
           action: 'chat',
           messages: nextMessages.map((m) => ({
-            role: m.role,
+            role: m.role === 'orion' ? 'assistant' : m.role,
             content: m.content,
           })),
           experiences,
           locations,
+          adventures,
+          wishlistItems,
         }),
       });
 
       let reply = '';
+      let adventurePreview: StructuredAdventurePayload | null = null;
+      let intent: AdventureIntent = 'general_chat';
+
       if (res.ok) {
         const data = await res.json();
         reply = data.reply;
-      }
-      if (!reply) {
-        reply =
-          'That sounds like an incredible idea! Based on your adventures, I recommend checking out our suggestions below. I have filtered verified real-world coordinates for you!';
+        adventurePreview = data.adventure_preview || null;
+        intent = data.intent || 'general_chat';
       }
 
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: 'orion',
-          content: reply,
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        },
-      ]);
+      if (!reply) {
+        reply =
+          "That sounds like an incredible journey! I have mapped grounded coordinates for your destination below.";
+      }
+
+      const orionMsg: ChatEntry = {
+        id: `orion-${Date.now()}`,
+        role: 'orion',
+        content: reply,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        adventure_preview: adventurePreview,
+        intent,
+      };
+
+      const finalMessages = [...nextMessages, orionMsg];
+      setMessages(finalMessages);
+
+      // Persist this conversation thread
+      const threadTitle =
+        adventurePreview?.title ||
+        nextMessages.find((m) => m.role === 'user')?.content.slice(0, 32) ||
+        'Adventure Plan';
+
+      const threadPayload: AIConversationThread = {
+        id: currentThreadId,
+        title: threadTitle,
+        adventure_id: linkedAdventureId || null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        messages: finalMessages.map((m) => ({
+          id: m.id,
+          role: m.role === 'orion' ? 'assistant' : 'user',
+          content: m.content,
+          structured_data: m.adventure_preview || null,
+          adventure_preview: m.adventure_preview || null,
+          timestamp: m.time,
+        })),
+      };
+
+      saveConversation(threadPayload);
+
+      // Async post to Supabase
+      fetch('/api/ai/conversations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(threadPayload),
+      }).catch((err) => console.warn('Background thread sync error:', err));
     } catch (err) {
       setMessages((prev) => [
         ...prev,
         {
+          id: `orion-${Date.now()}`,
           role: 'orion',
           content:
             'That sounds like a thrilling expedition! Check out the handpicked recommendation cards below for grounded coordinates.',
@@ -177,11 +363,80 @@ export default function DiscoverPage() {
     }
   };
 
+  // Convert structured AI preview into permanent Adventure
+  const handleSaveAdventure = async (preview: StructuredAdventurePayload) => {
+    const advId = `adv-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    const destinations = preview.stops.map((stop, idx) => ({
+      id: `dest-${Date.now()}-${idx}`,
+      adventure_id: advId,
+      name: stop.name,
+      city: stop.city || null,
+      country: stop.country,
+      latitude: stop.latitude || 0,
+      longitude: stop.longitude || 0,
+      order_index: idx,
+      day_number: stop.day_number || idx + 1,
+      target_date: stop.target_date || null,
+      notes: stop.notes || null,
+      activities: stop.activities || [],
+      is_completed: preview.status === 'completed',
+    }));
+
+    const completeAdventure: Adventure = {
+      id: advId,
+      user_id: 'active-user',
+      title: preview.title,
+      description: preview.description || null,
+      status: preview.status || 'planned',
+      estimated_budget: preview.estimated_budget || null,
+      currency: preview.currency || 'USD',
+      notes: `Planned with Orion AI Companion.\n${preview.description || ''}`,
+      cover_image_url:
+        'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80',
+      is_bucket_list: preview.status === 'dreaming',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      destinations,
+      conversation_id: currentThreadId,
+    };
+
+    addAdventure(completeAdventure);
+    setSelectedAdventure(completeAdventure);
+    setSavedAdventureTitles((prev) => new Set(prev).add(preview.title));
+
+    try {
+      await fetch('/api/adventures', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          adventure: completeAdventure,
+          destinations,
+        }),
+      });
+    } catch (err) {
+      console.warn('Failed to sync adventure to server (persisted locally):', err);
+    }
+  };
+
+  // View on 3D Globe with Camera Flight & Great-Circle Arcs
+  const handleViewAdventureOnGlobe = async (preview: StructuredAdventurePayload) => {
+    await handleSaveAdventure(preview);
+    const firstStop = preview.stops[0];
+    if (firstStop && firstStop.latitude && firstStop.longitude) {
+      setFlyToTarget({
+        latitude: firstStop.latitude,
+        longitude: firstStop.longitude,
+        altitude: 350000,
+      });
+    }
+    router.push('/globe');
+  };
+
   const promptSuggestions = [
-    'Recommend something thrilling like Skydiving',
-    'Where should I travel in Japan next?',
-    'Find hidden nature escapes near mountains',
-    'Best food destinations for a foodie adventure',
+    'Plan a 5-day trip to Switzerland: Zurich, Lucerne, Interlaken, Zermatt',
+    'I dream of seeing Mount Fuji and climbing the summit',
+    'Where should I travel for an adrenaline-fueled nature escape?',
+    'I visited Paris last summer and loved the historic architecture',
   ];
 
   return (
@@ -200,32 +455,108 @@ export default function DiscoverPage() {
             <DoodleSparkle size={20} color="#6425F5" />
           </div>
           <p className="text-xs text-[#171313]/70 mt-1.5 font-bold">
-            Smart, personalized recommendations that map your memories to find unforgettable real-world adventures.
+            Adventure architect that turns your wanderlust into structured multi-stop journeys on your 3D globe.
           </p>
         </div>
 
-        <span className="px-3.5 py-1.5 rounded-full text-xs font-black bg-[#6425F5] text-white flex items-center gap-2 border-2 border-[#171313] shadow-pop-sm">
-          <Bot className="w-4 h-4 stroke-[2.5]" /> Verified GPS Coordinates
-        </span>
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+            className="px-4 py-2 rounded-2xl text-xs font-black bg-white hover:bg-[#FFD45A] text-[#171313] flex items-center gap-2 border-2 border-[#171313] shadow-pop-sm transition-all cursor-pointer"
+          >
+            <History className="w-4 h-4 stroke-[2.5]" />
+            <span>Saved Plans ({conversations.length})</span>
+          </button>
+
+          <button
+            onClick={handleStartNewSession}
+            className="px-4 py-2 rounded-2xl text-xs font-black bg-[#FFD45A] hover:bg-[#ffc72c] text-[#171313] flex items-center gap-2 border-2 border-[#171313] shadow-pop-sm transition-all cursor-pointer"
+          >
+            <Plus className="w-4 h-4 stroke-[3]" />
+            <span>New Plan</span>
+          </button>
+        </div>
       </div>
 
+      {/* Slide-out / Dropdown Conversation History Drawer */}
+      {isHistoryOpen && (
+        <div className="p-5 bg-white border-2 border-[#171313] rounded-3xl shadow-pop-lg animate-in fade-in duration-200">
+          <div className="flex items-center justify-between pb-3 border-b-2 border-[#171313] mb-3">
+            <span className="text-xs font-black text-[#171313] flex items-center gap-2">
+              <History className="w-4 h-4 text-[#6425F5] stroke-[2.5]" />
+              Your Adventure Planning History
+            </span>
+            <button
+              onClick={() => setIsHistoryOpen(false)}
+              className="text-xs font-black text-[#171313]/60 hover:text-[#171313]"
+            >
+              ✕ Close
+            </button>
+          </div>
+
+          {conversations.length === 0 ? (
+            <p className="text-xs text-[#171313]/60 font-bold py-2">
+              No previous conversations yet. Start planning with Orion below!
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+              {conversations.map((thread) => {
+                const isActive = thread.id === currentThreadId;
+                return (
+                  <div
+                    key={thread.id}
+                    onClick={() => handleSwitchThread(thread)}
+                    className={cn(
+                      'p-3.5 rounded-2xl border-2 border-[#171313] transition-all cursor-pointer flex flex-col justify-between gap-2 shadow-pop-xs hover:scale-[1.02]',
+                      isActive ? 'bg-[#FFD45A]' : 'bg-[#FFF4D9] hover:bg-white'
+                    )}
+                  >
+                    <div>
+                      <h4 className="text-xs font-black text-[#171313] line-clamp-1">
+                        {thread.title}
+                      </h4>
+                      <p className="text-[10px] text-[#171313]/70 font-bold mt-0.5">
+                        {thread.messages.length} messages •{' '}
+                        {new Date(thread.updated_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-between pt-1 border-t border-[#171313]/10">
+                      <span className="text-[10px] font-black text-[#6425F5]">
+                        {isActive ? '● Active Session' : 'Switch →'}
+                      </span>
+                      <button
+                        onClick={(e) => handleDeleteThread(e, thread.id)}
+                        className="p-1 text-[#171313]/50 hover:text-[#F04432] transition-colors"
+                        title="Delete Thread"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Orion Conversational Box with Bento-Pop Styling */}
-      <div className="bg-white border-2 border-[#171313] rounded-3xl p-6 space-y-4 shadow-pop-lg relative">
+      <div className="bg-white border-2 border-[#171313] rounded-3xl p-4 sm:p-6 space-y-4 shadow-pop-lg relative">
         <div className="flex items-center justify-between pb-3 border-b-2 border-[#171313]">
           <span className="text-xs font-black text-[#171313] flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-[#6425F5] stroke-[2.5]" />
-            Chat with Orion AI
+            Live Session: {conversations.find((c) => c.id === currentThreadId)?.title || 'New Adventure Plan'}
           </span>
           <span className="text-[11px] text-[#171313] font-black bg-[#FFD45A] border-2 border-[#171313] px-3 py-0.5 rounded-full shadow-pop-sm">
-            Trained on {experiences.length} memories ✦
+            Trained on {experiences.length} memories & {adventures.length} adventures ✦
           </span>
         </div>
 
         {/* Message Thread */}
-        <div className="space-y-3.5 max-h-64 overflow-y-auto pr-1">
+        <div className="space-y-4 max-h-[480px] overflow-y-auto pr-1">
           {messages.map((m, idx) => (
             <div
-              key={idx}
+              key={m.id || idx}
               className={`flex items-start gap-3 text-xs ${
                 m.role === 'user' ? 'justify-end' : 'justify-start'
               }`}
@@ -235,22 +566,170 @@ export default function DiscoverPage() {
                   <PixelOrionAvatar size={24} />
                 </div>
               )}
+
               <div
-                className={`p-4 rounded-3xl max-w-xl leading-relaxed text-xs font-bold border-2 border-[#171313] shadow-pop-sm ${
+                className={`p-4 rounded-3xl max-w-2xl leading-relaxed text-xs font-bold border-2 border-[#171313] shadow-pop-sm ${
                   m.role === 'user'
                     ? 'bg-[#F04432] text-white rounded-tr-xs'
                     : 'bg-[#FFF4D9] text-[#171313] rounded-tl-xs'
                 }`}
               >
-                {m.content}
+                {/* Conversational Text */}
+                <div className="whitespace-pre-line">{m.content}</div>
+
+                {/* Structured Adventure Itinerary Preview Card */}
+                {m.adventure_preview && (
+                  <div className="mt-4 p-4 bg-white border-2 border-[#171313] rounded-2xl shadow-pop-sm space-y-3 text-[#171313]">
+                    {/* Header with Title & Status Badge */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-[#171313]/15 pb-2.5">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={cn(
+                              'px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border border-[#171313]',
+                              m.adventure_preview.status === 'completed'
+                                ? 'bg-[#F04432] text-white'
+                                : m.adventure_preview.status === 'dreaming'
+                                ? 'bg-[#FFD45A] text-[#171313]'
+                                : 'bg-[#6425F5] text-white'
+                            )}
+                          >
+                            {m.adventure_preview.status === 'dreaming'
+                              ? '✦ Dream Destination'
+                              : m.adventure_preview.status === 'completed'
+                              ? '✓ Completed Memory'
+                              : '🏔️ Planned Expedition'}
+                          </span>
+                          {m.adventure_preview.estimated_budget && (
+                            <span className="text-[11px] font-mono font-black text-[#171313] bg-[#FFF4D9] px-2 py-0.5 rounded-md border border-[#171313]">
+                              Budget: ~{m.adventure_preview.estimated_budget} {m.adventure_preview.currency || 'USD'}
+                            </span>
+                          )}
+                        </div>
+                        <h3 className="text-sm font-black text-[#171313] mt-1">
+                          {m.adventure_preview.title}
+                        </h3>
+                      </div>
+                    </div>
+
+                    {m.adventure_preview.description && (
+                      <p className="text-xs text-[#171313]/80 font-medium">
+                        {m.adventure_preview.description}
+                      </p>
+                    )}
+
+                    {/* Ordered Stops Timeline */}
+                    <div className="space-y-2 pt-1">
+                      <div className="text-[11px] font-black text-[#171313]/70 uppercase tracking-wider flex items-center gap-1.5">
+                        <Route className="w-3.5 h-3.5 text-[#6425F5] stroke-[2.5]" />
+                        Itinerary Stops ({m.adventure_preview.stops.length})
+                      </div>
+
+                      <div className="space-y-2">
+                        {m.adventure_preview.stops.map((stop, sIdx) => (
+                          <div
+                            key={sIdx}
+                            className="p-2.5 bg-[#FFF4D9] rounded-xl border border-[#171313] text-xs flex flex-col gap-1"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-black text-[#171313] flex items-center gap-1.5">
+                                <span className="w-5 h-5 rounded-full bg-[#6425F5] text-white text-[10px] font-black inline-flex items-center justify-center">
+                                  {sIdx + 1}
+                                </span>
+                                {stop.name}
+                              </span>
+                              {stop.latitude && stop.longitude && (
+                                <span className="text-[10px] font-mono text-[#171313]/70">
+                                  {stop.latitude.toFixed(2)}°, {stop.longitude.toFixed(2)}°
+                                </span>
+                              )}
+                            </div>
+
+                            <p className="text-[11px] text-[#171313]/70 font-bold ml-6.5">
+                              {[stop.city, stop.country].filter(Boolean).join(', ')}
+                              {stop.day_number ? ` • Day ${stop.day_number}` : ''}
+                            </p>
+
+                            {stop.activities && stop.activities.length > 0 && (
+                              <div className="flex flex-wrap gap-1 ml-6.5 mt-0.5">
+                                {stop.activities.map((act, aIdx) => (
+                                  <span
+                                    key={aIdx}
+                                    className="text-[10px] font-black bg-white border border-[#171313] px-2 py-0.5 rounded text-[#171313]"
+                                  >
+                                    ✦ {act}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+
+                            {stop.notes && (
+                              <p className="text-[11px] text-[#171313]/80 italic ml-6.5 mt-0.5">
+                                &ldquo;{stop.notes}&rdquo;
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Action Bar */}
+                    <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-[#171313]/15">
+                      <button
+                        onClick={() => handleSaveAdventure(m.adventure_preview!)}
+                        disabled={savedAdventureTitles.has(m.adventure_preview.title)}
+                        className={cn(
+                          'py-2 px-4 rounded-xl text-xs font-black border-2 border-[#171313] shadow-pop-xs transition-all flex items-center gap-1.5 cursor-pointer',
+                          savedAdventureTitles.has(m.adventure_preview.title)
+                            ? 'bg-emerald-500 text-white cursor-default'
+                            : 'bg-[#FFD45A] hover:bg-[#ffc72c] text-[#171313]'
+                        )}
+                      >
+                        {savedAdventureTitles.has(m.adventure_preview.title) ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 stroke-[3]" />
+                            <span>Saved to Passport & Globe!</span>
+                          </>
+                        ) : (
+                          <>
+                            <BookmarkCheck className="w-3.5 h-3.5 stroke-[2.5]" />
+                            <span>Save Adventure</span>
+                          </>
+                        )}
+                      </button>
+
+                      <button
+                        onClick={() => handleViewAdventureOnGlobe(m.adventure_preview!)}
+                        className="py-2 px-4 rounded-xl text-xs font-black bg-[#6425F5] hover:bg-[#521ec9] text-white border-2 border-[#171313] shadow-pop-xs transition-all flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Globe2 className="w-3.5 h-3.5 stroke-[2.5]" />
+                        <span>View on 3D Globe</span>
+                      </button>
+
+                      <button
+                        onClick={() =>
+                          setChatInput(
+                            `Can you suggest top scenic viewpoints and authentic dining in ${m.adventure_preview?.stops[0]?.name || 'this itinerary'}?`
+                          )
+                        }
+                        className="py-2 px-3 rounded-xl text-xs font-black bg-white hover:bg-[#FFF4D9] text-[#171313] border-2 border-[#171313] shadow-pop-xs transition-all flex items-center gap-1 cursor-pointer"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-[#6425F5]" />
+                        <span>Refine Itinerary</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 <div
-                  className={`text-[10px] mt-1 text-right font-black ${
+                  className={`text-[10px] mt-1.5 text-right font-black ${
                     m.role === 'user' ? 'text-white/80' : 'text-[#171313]/50'
                   }`}
                 >
                   {m.time}
                 </div>
               </div>
+
               {m.role === 'user' && (
                 <div className="w-9 h-9 rounded-2xl bg-[#FFD45A] border-2 border-[#171313] flex items-center justify-center text-[#171313] font-black text-xs shrink-0 mt-0.5 shadow-pop-sm">
                   ME
@@ -262,9 +741,10 @@ export default function DiscoverPage() {
           {isTyping && (
             <div className="flex items-center gap-2 text-xs text-[#6425F5] font-black">
               <Bot className="w-4 h-4 animate-spin stroke-[2.5]" />
-              <span>Orion is plotting adventures for you…</span>
+              <span>Orion is plotting routes and coordinates…</span>
             </div>
           )}
+          <div ref={messagesEndRef} />
         </div>
 
         {/* Quick Suggestion Pills */}
@@ -273,7 +753,7 @@ export default function DiscoverPage() {
             <button
               key={s}
               onClick={() => handleSendMessage(s)}
-              className="text-[11px] px-3.5 py-1.5 rounded-full bg-[#FFF4D9] hover:bg-[#FFD45A] border-2 border-[#171313] text-[#171313] font-bold shadow-pop-sm transition-all cursor-pointer"
+              className="text-[11px] px-3.5 py-1.5 rounded-full bg-[#FFF4D9] hover:bg-[#FFD45A] border-2 border-[#171313] text-[#171313] font-bold shadow-pop-sm transition-all cursor-pointer truncate max-w-full"
             >
               {s}
             </button>
@@ -283,7 +763,7 @@ export default function DiscoverPage() {
         {/* Input Bar */}
         <div className="flex items-center gap-2 pt-2">
           <input
-            placeholder="Ask Orion about destinations, adrenaline thrills, or hidden foodie spots…"
+            placeholder="Ask Orion to plan a trip, dream of a destination, or log a memory…"
             value={chatInput}
             onChange={(e) => setChatInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
@@ -330,7 +810,7 @@ export default function DiscoverPage() {
                   : 'bg-white text-[#171313]/70 hover:bg-[#FFD45A]/30 shadow-pop-sm'
               )}
             >
-              Mode B: Nearby Gems
+              Mode B: Hidden Gems Nearby
             </button>
 
             <button
@@ -345,11 +825,13 @@ export default function DiscoverPage() {
                   : 'bg-white text-[#171313]/70 hover:bg-[#FFD45A]/30 shadow-pop-sm'
               )}
             >
-              Mode C: Bucket List Ideas
+              Mode C: Bucket List Dreams
             </button>
 
             <button
-              onClick={() => setActiveMode('destination')}
+              onClick={() => {
+                setActiveMode('destination');
+              }}
               className={cn(
                 'px-4 py-2 rounded-2xl text-xs font-black transition-all cursor-pointer border-2 border-[#171313]',
                 activeMode === 'destination'
@@ -357,127 +839,96 @@ export default function DiscoverPage() {
                   : 'bg-white text-[#171313]/70 hover:bg-[#FFD45A]/30 shadow-pop-sm'
               )}
             >
-              Mode D: Destination Inspiration
+              Mode D: Destination Focus
             </button>
           </div>
 
           {activeMode === 'destination' && (
-            <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="flex items-center gap-2">
               <input
-                placeholder="Type country/city (e.g. Japan, Switzerland)…"
+                type="text"
+                placeholder="Search city, country, or landmark…"
                 value={destinationInput}
                 onChange={(e) => setDestinationInput(e.target.value)}
-                className="bg-white border-2 border-[#171313] rounded-2xl px-4 py-2 text-xs text-[#171313] placeholder-[#171313]/50 focus:outline-none font-black shadow-pop-sm"
+                className="bg-white border-2 border-[#171313] rounded-2xl px-4 py-2 text-xs text-[#171313] placeholder-[#171313]/50 focus:outline-none font-bold shadow-pop-sm w-64"
               />
             </div>
           )}
         </div>
 
         {/* Recommendation Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {recommendations.map((rec) => {
-            const isSaved = savedIds.has(rec.id);
-
+            const isSaved = savedIds.has(rec.id) || rec.is_saved;
             return (
               <div
                 key={rec.id}
-                className={cn(
-                  'relative bg-white border-2 border-[#171313] rounded-3xl p-4 pb-4 flex flex-col justify-between transition-all duration-300 group shadow-pop hover:shadow-pop-lg hover:-translate-y-1',
-                  rec.id.charCodeAt(0) % 2 === 0 ? '-rotate-[0.5deg] hover:rotate-0' : 'rotate-[0.5deg] hover:rotate-0'
-                )}
+                className="bg-white border-2 border-[#171313] rounded-3xl overflow-hidden shadow-pop hover:scale-[1.01] transition-all flex flex-col justify-between"
               >
-                {/* Washi Tape Strip */}
-                <WashiTape
-                  className="absolute -top-2.5 left-1/2 -translate-x-1/2 z-20"
-                  rotate={rec.id.charCodeAt(0) % 2 === 0 ? '-2deg' : '2deg'}
-                  color="bg-[#FFD45A]/90"
-                />
-
                 <div>
-                  {/* Photo */}
-                  <div className="aspect-[16/10] relative rounded-2xl overflow-hidden bg-[#171313] border-2 border-[#171313] shadow-pop-sm">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={rec.image_url || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80'}
-                      alt={rec.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                    <div className="absolute top-3 left-3">
-                      <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-[#FFD45A] text-[#171313] uppercase border border-[#171313] shadow-pop-sm">
+                  {rec.image_url && (
+                    <div className="relative h-44 w-full bg-[#171313] border-b-2 border-[#171313] overflow-hidden">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={rec.image_url}
+                        alt={rec.title}
+                        className="w-full h-full object-cover"
+                      />
+                      <span className="absolute top-3 left-3 bg-[#FFD45A] text-[#171313] font-black text-[10px] px-3 py-1 rounded-full border-2 border-[#171313] shadow-pop-xs uppercase tracking-wider">
                         {rec.category}
                       </span>
                     </div>
-                  </div>
+                  )}
 
-                  {/* Body */}
-                  <div className="p-2 pt-3 space-y-2">
-                    <h3 className="text-sm font-black text-[#171313] group-hover:text-[#6425F5] transition-colors">
+                  <div className="p-4 space-y-2">
+                    <h3 className="text-sm font-black text-[#171313] line-clamp-1">
                       {rec.title}
                     </h3>
-
-                    <p className="text-xs text-[#171313]/70 font-black flex items-center gap-1.5">
+                    <p className="text-xs text-[#171313]/70 font-bold flex items-center gap-1">
                       <MapPin className="w-3.5 h-3.5 text-[#F04432] shrink-0 stroke-[2.5]" />
-                      <span>{rec.location_name}</span>
+                      <span className="truncate">{rec.location_name}</span>
                     </p>
-
-                    <p className="text-xs text-[#171313]/80 font-medium leading-relaxed">
+                    <p className="text-xs text-[#171313]/80 font-medium line-clamp-2">
                       {rec.description}
                     </p>
-
-                    {/* Grounded Explanation Box */}
-                    <div className="p-3 bg-[#FFF4D9] rounded-2xl border-2 border-[#171313] space-y-1 mt-2 shadow-pop-sm">
-                      <p className="text-[10px] font-black uppercase tracking-wider text-[#6425F5] flex items-center gap-1">
-                        <Sparkles className="w-3 h-3 text-[#6425F5] stroke-[2.5]" /> Why Orion Picked This:
+                    {rec.reason && (
+                      <p className="text-[11px] text-[#6425F5] font-black italic bg-[#6425F5]/10 p-2 rounded-xl border border-[#6425F5]/20">
+                        &ldquo;{rec.reason}&rdquo;
                       </p>
-                      <p className="text-[11px] text-[#171313] leading-snug font-bold">
-                        {rec.reason}
-                      </p>
-                    </div>
+                    )}
                   </div>
                 </div>
 
-                {/* Card Actions */}
-                <div className="px-2 pt-3 mt-1 border-t-2 border-[#171313]/10 flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-3">
-                    <Link
-                      href="/globe"
-                      onClick={() => handleFly(rec)}
-                      className="text-xs text-[#171313] hover:text-[#6425F5] font-black flex items-center gap-1"
-                    >
-                      <Globe2 className="w-3.5 h-3.5 stroke-[2.5]" /> Fly on Earth
-                    </Link>
-
-                    <button
-                      type="button"
-                      onClick={() => setSelectedRecForDetails(rec)}
-                      className="text-xs text-[#171313]/70 hover:text-[#6425F5] flex items-center gap-1 font-bold cursor-pointer transition-colors"
-                      title="View Experience Details"
-                    >
-                      <Info className="w-3.5 h-3.5 stroke-[2.5]" /> Details
-                    </button>
-                  </div>
-
+                <div className="p-4 pt-0 flex items-center gap-2">
                   <button
-                    disabled={isSaved}
                     onClick={() => handleSaveToWishlist(rec)}
+                    disabled={isSaved}
                     className={cn(
-                      'px-3.5 py-1.5 rounded-xl text-xs font-black border-2 border-[#171313] transition-all flex items-center gap-1 cursor-pointer',
+                      'flex-1 py-2 px-3 rounded-2xl text-xs font-black border-2 border-[#171313] shadow-pop-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer',
                       isSaved
-                        ? 'bg-emerald-200 text-[#171313] shadow-none'
-                        : 'bg-[#FFD45A] text-[#171313] shadow-pop-sm hover:scale-105 active:translate-x-0.5 active:translate-y-0.5'
+                        ? 'bg-emerald-500 text-white cursor-default'
+                        : 'bg-[#FFD45A] hover:bg-[#ffc72c] text-[#171313]'
                     )}
                   >
                     {isSaved ? (
                       <>
-                        <Check className="w-3 h-3 stroke-[3] text-[#171313]" />
+                        <Check className="w-3.5 h-3.5 stroke-[3]" />
                         <span>Saved</span>
                       </>
                     ) : (
                       <>
-                        <BookmarkCheck className="w-3 h-3 stroke-[2.5]" />
-                        <span>Wishlist</span>
+                        <BookmarkCheck className="w-3.5 h-3.5 stroke-[2.5]" />
+                        <span>Save to Wishlist</span>
                       </>
                     )}
+                  </button>
+
+                  <button
+                    onClick={() => handleFly(rec)}
+                    className="p-2 rounded-2xl bg-[#6425F5] hover:bg-[#521ec9] text-white border-2 border-[#171313] shadow-pop-xs transition-all cursor-pointer"
+                    title="View on 3D Globe"
+                  >
+                    <Globe2 className="w-4 h-4 stroke-[2.5]" />
                   </button>
                 </div>
               </div>
@@ -485,132 +936,26 @@ export default function DiscoverPage() {
           })}
         </div>
       </div>
-
-      {/* Experience Details Modal */}
-      {selectedRecForDetails && (
-        <Modal
-          isOpen={!!selectedRecForDetails}
-          onClose={() => setSelectedRecForDetails(null)}
-          title={selectedRecForDetails.title}
-          description={`${selectedRecForDetails.category} • ${selectedRecForDetails.location_name}`}
-          maxWidth="2xl"
-        >
-          <div className="space-y-4 pt-1">
-            {/* Hero Image & Tags */}
-            {selectedRecForDetails.image_url && (
-              <div className="relative h-60 w-full rounded-2xl overflow-hidden border-2 border-[#171313] shadow-pop-sm">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={selectedRecForDetails.image_url}
-                  alt={selectedRecForDetails.title}
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute top-3 left-3 flex flex-wrap gap-2">
-                  <span className="px-3 py-1 bg-[#FFD45A] text-[#171313] border-2 border-[#171313] rounded-full text-xs font-black uppercase tracking-wider shadow-pop-xs">
-                    {selectedRecForDetails.category}
-                  </span>
-                  {selectedRecForDetails.distance_km != null && (
-                    <span className="px-3 py-1 bg-white text-[#171313] border-2 border-[#171313] rounded-full text-xs font-black tracking-wider shadow-pop-xs">
-                      {Math.round(selectedRecForDetails.distance_km).toLocaleString()} km away
-                    </span>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Geographical Location Card */}
-            <div className="flex flex-wrap items-center justify-between gap-2 p-3.5 bg-white rounded-2xl border-2 border-[#171313] shadow-pop-xs">
-              <div className="flex items-center gap-2 text-xs font-black text-[#171313]">
-                <MapPin className="w-4 h-4 text-[#F04432] stroke-[2.5] shrink-0" />
-                <span>{selectedRecForDetails.location_name}</span>
-              </div>
-              {selectedRecForDetails.latitude != null && selectedRecForDetails.longitude != null && (
-                <div className="text-[11px] font-mono text-[#171313]/70 font-bold bg-[#FFF4D9] px-2.5 py-1 rounded-lg border border-[#171313]/20">
-                  GPS: {selectedRecForDetails.latitude.toFixed(4)}°, {selectedRecForDetails.longitude.toFixed(4)}°
-                </div>
-              )}
-            </div>
-
-            {/* Comprehensive Description */}
-            <div className="p-4 bg-white rounded-2xl border-2 border-[#171313] space-y-2 shadow-pop-xs">
-              <h4 className="text-xs font-black uppercase tracking-wider text-[#171313]">Experience Overview</h4>
-              <p className="text-sm text-[#171313]/90 leading-relaxed font-medium">
-                {selectedRecForDetails.description}
-              </p>
-            </div>
-
-            {/* Why Orion Picked This */}
-            <div className="p-4 bg-[#6425F5]/10 rounded-2xl border-2 border-[#6425F5] space-y-1.5">
-              <div className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-[#6425F5]">
-                <Sparkles className="w-4 h-4 stroke-[2.5]" />
-                <span>Why Orion Curated This For You</span>
-              </div>
-              <p className="text-xs text-[#171313] leading-relaxed font-bold">
-                {selectedRecForDetails.reason}
-              </p>
-            </div>
-
-            {/* Modal Bottom Actions */}
-            <div className="pt-3 flex flex-wrap items-center justify-between gap-3 border-t-2 border-[#171313]/15">
-              {/* Google Maps Search (Safe fallback if user wants external search) */}
-              <a
-                href={
-                  selectedRecForDetails.external_url ||
-                  `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-                    `${selectedRecForDetails.title} ${selectedRecForDetails.location_name}`
-                  )}`
-                }
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-3.5 py-2 bg-white hover:bg-slate-50 text-[#171313] border-2 border-[#171313] rounded-xl text-xs font-black flex items-center gap-1.5 shadow-pop-xs transition-transform active:translate-x-0.5 active:translate-y-0.5 cursor-pointer"
-              >
-                <ExternalLink className="w-3.5 h-3.5" />
-                <span>Open in Google Maps</span>
-              </a>
-
-              <div className="flex items-center gap-2">
-                {/* Fly on 3D Earth */}
-                <Link
-                  href="/globe"
-                  onClick={() => {
-                    handleFly(selectedRecForDetails);
-                    setSelectedRecForDetails(null);
-                  }}
-                  className="px-4 py-2 bg-[#6425F5] text-white hover:bg-[#521ecf] border-2 border-[#171313] rounded-xl text-xs font-black flex items-center gap-1.5 shadow-pop-xs transition-transform active:translate-x-0.5 active:translate-y-0.5"
-                >
-                  <Globe2 className="w-3.5 h-3.5 stroke-[2.5]" />
-                  <span>Fly on Earth</span>
-                </Link>
-
-                {/* Add to Wishlist */}
-                <button
-                  disabled={savedIds.has(selectedRecForDetails.id)}
-                  onClick={() => handleSaveToWishlist(selectedRecForDetails)}
-                  className={cn(
-                    'px-4 py-2 rounded-xl text-xs font-black border-2 border-[#171313] transition-all flex items-center gap-1.5 cursor-pointer',
-                    savedIds.has(selectedRecForDetails.id)
-                      ? 'bg-emerald-200 text-[#171313] shadow-none'
-                      : 'bg-[#FFD45A] text-[#171313] shadow-pop-xs hover:scale-105 active:translate-x-0.5 active:translate-y-0.5'
-                  )}
-                >
-                  {savedIds.has(selectedRecForDetails.id) ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 stroke-[3]" />
-                      <span>Saved to Wishlist</span>
-                    </>
-                  ) : (
-                    <>
-                      <BookmarkCheck className="w-3.5 h-3.5 stroke-[2.5]" />
-                      <span>Save to Wishlist</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        </Modal>
-      )}
     </div>
+  );
+}
+
+export default function DiscoverPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex-1 min-h-screen flex items-center justify-center bg-warm-cream-grid">
+          <div className="p-6 bg-white border-2 border-[#171313] rounded-3xl shadow-pop flex items-center gap-3">
+            <PixelOrionAvatar size={32} />
+            <span className="text-xs font-black text-[#171313]">
+              Loading Orion Adventure Architect…
+            </span>
+          </div>
+        </div>
+      }
+    >
+      <DiscoverContent />
+    </Suspense>
   );
 }
 

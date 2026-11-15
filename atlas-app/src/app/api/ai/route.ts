@@ -11,21 +11,27 @@ export async function POST(request: Request) {
       query = '',
       experiences = [],
       locations = [],
+      adventures = [],
+      wishlistItems = [],
       userLat,
       userLng,
     } = body;
 
     if (action === 'chat') {
-      const reply = await chatWithOrionGemini(messages, {
+      const chatResult = await chatWithOrionGemini(messages, {
         experiences,
         locations,
+        adventures,
+        wishlistItems,
         userLat,
         userLng,
       });
 
       return NextResponse.json({
         success: true,
-        reply,
+        reply: chatResult.reply,
+        adventure_preview: chatResult.adventure_preview,
+        intent: chatResult.intent,
       });
     }
 
