@@ -32,6 +32,7 @@ export default function SettingsPage() {
   const [allowLocation, setAllowLocation] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -238,44 +239,6 @@ export default function SettingsPage() {
           </button>
         </div>
 
-        {/* Account Session & Sign Out */}
-        <div className="p-6 bg-white border-2 border-[#171313] rounded-3xl space-y-4 shadow-pop">
-          <div className="flex items-center justify-between border-b-2 border-[#171313]/10 pb-3">
-            <h3 className="text-sm font-black text-[#171313] flex items-center gap-2">
-              <User className="w-4 h-4 text-[#6425F5] stroke-[2.5]" />
-              <span>Account & Session</span>
-            </h3>
-            {user?.isGuest && (
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-[#FFD45A] text-[#171313] border border-[#171313]">
-                Guest Mode
-              </span>
-            )}
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-              <p className="text-xs font-black text-[#171313]">
-                Active Profile: <span className="text-[#6425F5]">{user?.email || 'Guest Explorer'}</span>
-              </p>
-              <p className="text-[11px] text-[#171313]/60 font-bold mt-0.5">
-                {user?.isGuest
-                  ? 'You are currently exploring in guest mode. Create an account to sync across devices.'
-                  : 'Your personal session is active and secured with Supabase Auth.'}
-              </p>
-            </div>
-
-            <button
-              type="button"
-              disabled={isSigningOut}
-              onClick={handleSignOut}
-              className="px-4 py-2 rounded-2xl text-xs font-black text-white bg-[#F04432] hover:bg-[#d63b2b] border-2 border-[#171313] shadow-pop-sm hover:scale-105 active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer flex items-center gap-2 shrink-0 disabled:opacity-60"
-            >
-              <LogOut className="w-3.5 h-3.5 stroke-[2.5]" />
-              <span>{isSigningOut ? 'Signing Out…' : 'Sign Out of ATLAS'}</span>
-            </button>
-          </div>
-        </div>
-
         {/* Save Bar */}
         <div className="flex items-center justify-between pt-4 border-t-2 border-[#171313]/15">
           {isSaved ? (
@@ -288,12 +251,84 @@ export default function SettingsPage() {
 
           <button
             type="submit"
-            className="px-6 py-3 rounded-2xl text-xs font-black text-white bg-[#F04432] border-2 border-[#171313] shadow-pop hover:scale-105 active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer"
+            className="px-6 py-3 rounded-2xl text-xs font-black text-white bg-[#6425F5] hover:bg-[#521ecf] border-2 border-[#171313] shadow-pop hover:scale-105 active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer"
           >
             Save Preferences
           </button>
         </div>
       </form>
+
+      {/* ========================================================================= */}
+      {/* LOGOUT — FINAL ACTION POSITIONED AT THE VERY BOTTOM OF SETTINGS           */}
+      {/* ========================================================================= */}
+      <div className="pt-6 border-t-2 border-[#171313]/15">
+        <div className="p-6 bg-white border-2 border-[#171313] rounded-3xl shadow-pop flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-[#F04432]/10 border-2 border-[#F04432] text-[#F04432] flex items-center justify-center shrink-0 shadow-pop-xs">
+                <LogOut className="w-4 h-4 stroke-[2.5]" />
+              </div>
+              <h3 className="text-base font-black text-[#171313] tracking-tight">
+                Sign Out of ATLAS
+              </h3>
+            </div>
+            <p className="text-xs text-[#171313]/70 font-bold mt-1.5 max-w-lg leading-relaxed">
+              {user?.isGuest
+                ? 'Exit guest exploration mode. Your guest memories and pinned pins are saved on this device.'
+                : 'Sign out of your ATLAS account. Your memories, coordinates, and notes will remain securely encrypted in your archive.'}
+            </p>
+            {user && !user.isGuest && (
+              <p className="text-[11px] font-bold text-[#6425F5] mt-1.5">
+                Active account: <span className="font-black text-[#171313]">{user.email}</span>
+              </p>
+            )}
+          </div>
+
+          <button
+            type="button"
+            disabled={isSigningOut}
+            onClick={() => setShowLogoutModal(true)}
+            className="px-5 py-2.5 rounded-2xl text-xs font-black text-white bg-[#F04432] hover:bg-[#d63b2b] border-2 border-[#171313] shadow-pop hover:scale-105 active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer flex items-center gap-2 shrink-0 disabled:opacity-60"
+          >
+            <LogOut className="w-4 h-4 stroke-[2.5]" />
+            <span>{isSigningOut ? 'Signing Out…' : user?.isGuest ? 'Exit Guest Mode' : 'Log Out'}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Confirmation Dialog Modal */}
+      {showLogoutModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white border-3 border-[#171313] rounded-3xl p-6 max-w-sm w-full shadow-pop-lg animate-in zoom-in-95 duration-150 text-center">
+            <div className="w-12 h-12 rounded-2xl bg-[#F04432]/10 border-2 border-[#F04432] text-[#F04432] mx-auto flex items-center justify-center mb-3 shadow-pop-xs">
+              <LogOut className="w-6 h-6 stroke-[2.5]" />
+            </div>
+            <h4 className="text-lg font-black text-[#171313] font-serif">
+              Confirm Sign Out
+            </h4>
+            <p className="text-xs text-[#171313]/70 font-bold mt-1.5 mb-5 leading-relaxed">
+              Are you sure you want to sign out of ATLAS? You will return to the sign-in screen.
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setShowLogoutModal(false)}
+                className="px-4 py-2.5 rounded-2xl text-xs font-black text-[#171313] bg-[#FFF4D9] hover:bg-[#FFD45A] border-2 border-[#171313] shadow-pop-xs transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isSigningOut}
+                onClick={handleSignOut}
+                className="px-4 py-2.5 rounded-2xl text-xs font-black text-white bg-[#F04432] hover:bg-[#d63b2b] border-2 border-[#171313] shadow-pop-xs transition-all cursor-pointer disabled:opacity-60"
+              >
+                {isSigningOut ? 'Signing Out…' : 'Yes, Sign Out'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

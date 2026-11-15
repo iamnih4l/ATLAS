@@ -18,7 +18,6 @@ import {
 import { useAtlasStore } from '@/lib/store';
 import { cn } from '@/lib/utils';
 import { SpotlightSearch } from '@/components/layout/spotlight-search';
-import { AccountMenu } from '@/components/layout/account-menu';
 import { PixelCompass } from '@/components/ui/pixel-stickers';
 import { DoodleSparkle } from '@/components/ui/doodles';
 
@@ -188,22 +187,20 @@ export function CinematicHUD() {
               <span className="text-[11px] font-black">Record</span>
             </button>
 
-            {/* Settings Link */}
+            {/* Settings Link (Direct access on Desktop & Mobile) */}
             <Link
               href="/settings"
               className={cn(
-                'p-1.5 rounded-full border-2 border-[#171313] shadow-pop-sm transition-all cursor-pointer active:translate-x-0.5 active:translate-y-0.5 hidden sm:flex items-center justify-center',
+                'p-1.5 rounded-full border-2 border-[#171313] shadow-pop-sm transition-all cursor-pointer active:translate-x-0.5 active:translate-y-0.5 flex items-center justify-center',
                 pathname === '/settings'
                   ? 'bg-[#171313] text-white'
                   : 'bg-white hover:bg-[#FFF4D9] text-[#171313]'
               )}
               title="Settings"
+              aria-label="Settings"
             >
               <Settings className="w-3.5 h-3.5 stroke-[2.5]" />
             </Link>
-
-            {/* Account & Session Menu (with Prominent Logout) */}
-            <AccountMenu />
           </div>
         </div>
       </nav>

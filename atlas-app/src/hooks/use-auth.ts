@@ -3,6 +3,7 @@
 import { create } from 'zustand';
 import { createClient } from '@/lib/supabase/client';
 import { useAtlasStore } from '@/lib/store';
+import { getAuthRedirectUrl } from '@/lib/site-url';
 
 export interface AuthUser {
   id: string;
@@ -133,10 +134,7 @@ export const useAuth = create<AuthState>((set, get) => ({
 
     try {
       const supabase = createClient();
-      const redirectUrl =
-        typeof window !== 'undefined'
-          ? `${window.location.origin}/api/auth/callback`
-          : undefined;
+      const redirectUrl = getAuthRedirectUrl('/auth/callback');
 
       const { data, error } = await supabase.auth.signUp({
         email: cleanEmail,
@@ -226,9 +224,13 @@ export const useAuth = create<AuthState>((set, get) => ({
 
     try {
       const supabase = createClient();
+      const redirectUrl = getAuthRedirectUrl('/auth/callback');
       const { error } = await supabase.auth.resend({
         type: 'signup',
         email: cleanEmail,
+        options: {
+          emailRedirectTo: redirectUrl,
+        },
       });
 
       if (error) {
@@ -252,10 +254,7 @@ export const useAuth = create<AuthState>((set, get) => ({
 
     try {
       const supabase = createClient();
-      const redirectUrl =
-        typeof window !== 'undefined'
-          ? `${window.location.origin}/login?reset=true`
-          : undefined;
+      const redirectUrl = getAuthRedirectUrl('/login?reset=true');
 
       const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
         redirectTo: redirectUrl,

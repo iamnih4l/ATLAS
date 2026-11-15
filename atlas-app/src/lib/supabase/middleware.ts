@@ -55,14 +55,18 @@ export async function updateSession(request: NextRequest) {
       data: { user },
     } = await supabase.auth.getUser();
 
-    const isAuthRoute = request.nextUrl.pathname.startsWith('/login') || 
-                        request.nextUrl.pathname.startsWith('/register');
+    const isAuthRoute =
+      request.nextUrl.pathname.startsWith('/login') ||
+      request.nextUrl.pathname.startsWith('/register');
+    const isVerificationRoute =
+      request.nextUrl.pathname.startsWith('/auth') ||
+      request.nextUrl.pathname.startsWith('/loading');
     const isApiRoute = request.nextUrl.pathname.startsWith('/api');
     const isPublicRoute = request.nextUrl.pathname === '/';
 
     const isGuest = request.cookies.get('atlas_guest_mode');
 
-    if (!user && !isGuest && !isAuthRoute && !isApiRoute && !isPublicRoute) {
+    if (!user && !isGuest && !isAuthRoute && !isVerificationRoute && !isApiRoute && !isPublicRoute) {
       const url = request.nextUrl.clone();
       url.pathname = '/login';
       return NextResponse.redirect(url);
