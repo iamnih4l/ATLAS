@@ -67,7 +67,7 @@ export function LocationDetailPanel() {
   return (
     <aside
       aria-label="Tactile Folder Location Panel"
-      className="fixed top-20 right-6 bottom-24 w-[380px] max-w-[calc(100vw-3rem)] z-40 flex flex-col pointer-events-auto select-none animate-in fade-in slide-in-from-right-4 duration-300"
+      className="fixed inset-x-3 bottom-20 top-16 sm:inset-auto sm:top-20 sm:right-6 sm:bottom-24 sm:w-[380px] sm:max-w-[calc(100vw-3rem)] z-40 flex flex-col pointer-events-auto select-none animate-in fade-in slide-in-from-right-4 duration-300"
     >
       {/* Mellow / Saved Style File Folder Top Tab */}
       <div className="flex items-end justify-between px-2">

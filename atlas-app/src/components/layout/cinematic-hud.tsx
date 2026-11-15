@@ -114,8 +114,8 @@ export function CinematicHUD() {
             </div>
           </Link>
 
-          {/* Navigation Items with Chunky Pop Tabs */}
-          <div className="flex items-center gap-1 sm:gap-1.5">
+          {/* Navigation Items with Chunky Pop Tabs (Desktop & Tablet) */}
+          <div className="hidden sm:flex items-center gap-1 sm:gap-1.5">
             {navItems.map((item) => {
               const isActive = pathname === item.href;
               const Icon = item.icon;
@@ -177,14 +177,14 @@ export function CinematicHUD() {
               </kbd>
             </button>
 
-            {/* Quick Log Experience */}
+            {/* Quick Log Experience (Desktop) */}
             <button
               onClick={() => setExperienceModalOpen(true)}
-              className="p-1.5 rounded-full bg-[#FFD45A] hover:bg-[#FFC72C] text-[#171313] border-2 border-[#171313] shadow-pop-sm hover:scale-105 active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer flex items-center gap-1 px-2.5"
+              className="p-1.5 rounded-full bg-[#FFD45A] hover:bg-[#FFC72C] text-[#171313] border-2 border-[#171313] shadow-pop-sm hover:scale-105 active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer hidden sm:flex items-center gap-1 px-2.5"
               title="Log New Experience"
             >
               <Plus className="w-3.5 h-3.5 stroke-[3]" />
-              <span className="text-[11px] font-black hidden sm:inline">Record</span>
+              <span className="text-[11px] font-black">Record</span>
             </button>
 
             {/* Settings Link */}

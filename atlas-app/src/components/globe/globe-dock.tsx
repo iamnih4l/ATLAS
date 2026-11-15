@@ -33,7 +33,7 @@ export function GlobeDock() {
   };
 
   return (
-    <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-30 pointer-events-auto select-none">
+    <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-30 pointer-events-auto select-none hidden sm:flex">
       <Dock className="items-center pb-1 border-2 border-[#171313] shadow-pop-lg bg-[#FFF4D9]/95 backdrop-blur-xl rounded-3xl p-1.5">
         {/* Reset Global Orbit */}
         <DockItem

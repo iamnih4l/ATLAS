@@ -1,6 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/hooks/use-auth';
 import { useAtlasStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +13,8 @@ import {
   Download,
   Cloud,
   Check,
+  LogOut,
+  ShieldAlert,
 } from 'lucide-react';
 import { DoodleSparkle, DoodleUnderline } from '@/components/ui/doodles';
 import { AdventurePeaks } from '@/components/ui/atlas-illustrations';
@@ -18,12 +22,29 @@ import { AdventurePeaks } from '@/components/ui/atlas-illustrations';
 export default function SettingsPage() {
   const { experiences, locations, wishlistItems } = useAtlasStore();
 
-  const [fullName, setFullName] = useState('Atlas Explorer');
-  const [email, setEmail] = useState('explorer@atlas.journal');
+  const router = useRouter();
+  const { user, signOut } = useAuth();
+
+  const [fullName, setFullName] = useState(user?.fullName || 'Atlas Explorer');
+  const [email, setEmail] = useState(user?.email || 'explorer@atlas.journal');
   const [defaultPrivacy, setDefaultPrivacy] = useState<'private' | 'unlisted' | 'public'>('private');
   const [aiPersonalization, setAiPersonalization] = useState(true);
   const [allowLocation, setAllowLocation] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      if (user.fullName) setFullName(user.fullName);
+      if (user.email) setEmail(user.email);
+    }
+  }, [user]);
+
+  const handleSignOut = async () => {
+    setIsSigningOut(true);
+    await signOut();
+    router.push('/login');
+  };
 
   // Data Export JSON
   const handleExportData = () => {
@@ -58,7 +79,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto pt-24 sm:pt-28 pb-24 px-6 max-w-4xl mx-auto space-y-8 w-full bg-warm-cream-grid min-h-screen">
+    <div className="flex-1 overflow-y-auto pt-20 sm:pt-28 pb-28 sm:pb-24 px-3.5 sm:px-6 max-w-4xl mx-auto space-y-8 w-full bg-warm-cream-grid min-h-screen">
       {/* Header */}
       <div className="border-b-2 border-[#171313]/15 pb-6">
         <div className="flex items-center gap-2.5">
@@ -215,6 +236,44 @@ export default function SettingsPage() {
             <Download className="w-4 h-4 stroke-[2.5]" />
             <span>Export Complete Journal (JSON)</span>
           </button>
+        </div>
+
+        {/* Account Session & Sign Out */}
+        <div className="p-6 bg-white border-2 border-[#171313] rounded-3xl space-y-4 shadow-pop">
+          <div className="flex items-center justify-between border-b-2 border-[#171313]/10 pb-3">
+            <h3 className="text-sm font-black text-[#171313] flex items-center gap-2">
+              <User className="w-4 h-4 text-[#6425F5] stroke-[2.5]" />
+              <span>Account & Session</span>
+            </h3>
+            {user?.isGuest && (
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-[#FFD45A] text-[#171313] border border-[#171313]">
+                Guest Mode
+              </span>
+            )}
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <p className="text-xs font-black text-[#171313]">
+                Active Profile: <span className="text-[#6425F5]">{user?.email || 'Guest Explorer'}</span>
+              </p>
+              <p className="text-[11px] text-[#171313]/60 font-bold mt-0.5">
+                {user?.isGuest
+                  ? 'You are currently exploring in guest mode. Create an account to sync across devices.'
+                  : 'Your personal session is active and secured with Supabase Auth.'}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              disabled={isSigningOut}
+              onClick={handleSignOut}
+              className="px-4 py-2 rounded-2xl text-xs font-black text-white bg-[#F04432] hover:bg-[#d63b2b] border-2 border-[#171313] shadow-pop-sm hover:scale-105 active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer flex items-center gap-2 shrink-0 disabled:opacity-60"
+            >
+              <LogOut className="w-3.5 h-3.5 stroke-[2.5]" />
+              <span>{isSigningOut ? 'Signing Out…' : 'Sign Out of ATLAS'}</span>
+            </button>
+          </div>
         </div>
 
         {/* Save Bar */}

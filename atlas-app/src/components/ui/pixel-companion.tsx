@@ -63,7 +63,7 @@ export function PixelCompanion() {
           setIsMinimized(false);
           setIsBubbleVisible(true);
         }}
-        className="fixed bottom-5 right-6 z-40 p-2.5 rounded-full bg-white/95 border-2 border-slate-900 shadow-pop-sm hover:scale-110 active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer group"
+        className="fixed bottom-20 right-4 sm:bottom-5 sm:right-6 z-30 p-2.5 rounded-full bg-white/95 border-2 border-slate-900 shadow-pop-sm hover:scale-110 active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer group"
         title="Wake up Pip the Explorer"
       >
         <div className="relative">
@@ -79,7 +79,7 @@ export function PixelCompanion() {
   return (
     <aside
       aria-label="Pixel Travel Buddy"
-      className="fixed bottom-5 right-6 z-40 flex flex-col items-end pointer-events-auto select-none"
+      className="fixed bottom-20 right-4 sm:bottom-5 sm:right-6 z-30 flex flex-col items-end pointer-events-auto select-none"
     >
       {/* Speech Bubble */}
       <AnimatePresence>

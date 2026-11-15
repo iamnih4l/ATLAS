@@ -33,7 +33,7 @@ export function GlobeControls() {
   };
 
   return (
-    <div className="absolute top-20 left-6 z-30 flex flex-col gap-2.5 pointer-events-auto select-none max-w-xs sm:max-w-md">
+    <div className="absolute top-16 left-3 sm:top-20 sm:left-6 z-30 flex flex-col gap-2 pointer-events-auto select-none max-w-[calc(100vw-1.5rem)] sm:max-w-md">
       {/* Primary Filter Pill Strip */}
       <div className="p-1.5 bg-[#FFF4D9]/95 backdrop-blur-xl border-2 border-[#171313] rounded-full shadow-pop flex items-center gap-1.5">
         <button

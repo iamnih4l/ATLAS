@@ -93,7 +93,7 @@ export default function MemoriesPage() {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto pt-24 sm:pt-28 pb-24 px-6 max-w-7xl mx-auto space-y-6 w-full bg-warm-cream-grid min-h-screen">
+    <div className="flex-1 overflow-y-auto pt-20 sm:pt-28 pb-28 sm:pb-24 px-3.5 sm:px-6 max-w-7xl mx-auto space-y-6 w-full bg-warm-cream-grid min-h-screen">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b-2 border-[#171313]/15 pb-6">
         <div>

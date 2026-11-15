@@ -1,6 +1,7 @@
 import React from 'react';
-import { Compass } from 'lucide-react';
 import Link from 'next/link';
+import { PixelCompass } from '@/components/ui/pixel-stickers';
+import { DoodleSparkle } from '@/components/ui/doodles';
 
 export default function AuthLayout({
   children,
@@ -8,35 +9,56 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen w-full bg-[#09090b] flex flex-col justify-center items-center p-4 relative overflow-hidden">
-      {/* Background radial atmosphere */}
-      <div className="absolute inset-0 vignette-radial pointer-events-none" />
-
-      {/* Brand Header */}
-      <div className="mb-8 text-center relative z-10">
-        <Link href="/" className="inline-flex items-center gap-2.5 group">
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-105 group-hover:border-emerald-500/60 transition-all glow-emerald-subtle">
-            <Compass className="w-5 h-5 text-emerald-400" />
+    <div className="min-h-screen w-full bg-warm-cream-grid flex flex-col justify-between items-center p-4 sm:p-6 md:p-8 relative select-none">
+      {/* Top Brand Bar */}
+      <header className="w-full max-w-5xl flex items-center justify-between py-2 sm:py-4">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2.5 group cursor-pointer"
+          title="ATLAS — Return Home"
+        >
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-[#6425F5] border-2 border-[#171313] flex items-center justify-center text-white shadow-pop-sm group-hover:scale-105 group-hover:rotate-6 transition-all">
+            <PixelCompass size={22} />
           </div>
-          <span className="font-bold text-xl tracking-widest text-[#f5f5f0] uppercase">
-            ATLAS
-          </span>
+          <div>
+            <div className="flex items-center gap-1">
+              <span className="font-black text-lg sm:text-xl tracking-tight text-[#171313] uppercase font-serif leading-none">
+                ATLAS
+              </span>
+              <span className="text-xs text-[#F04432] animate-bounce">★</span>
+            </div>
+            <span className="text-[9px] font-black text-[#6425F5] tracking-widest uppercase block mt-0.5">
+              PERSONAL GEOGRAPHICAL ARCHIVE
+            </span>
+          </div>
         </Link>
-        <p className="text-xs text-[#71717a] mt-1.5 font-medium tracking-tight">
-          A digital atlas of your life. Every location tells a story.
-        </p>
-      </div>
 
-      {/* Main Form Container */}
-      <div className="w-full max-w-md bg-[#121215] border border-[#23232b] rounded-2xl p-6 sm:p-8 shadow-2xl relative z-10 animate-in fade-in zoom-in-95 duration-200">
+        {/* Passport Tag */}
+        <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FFD45A] border-2 border-[#171313] text-[10px] font-black text-[#171313] uppercase shadow-pop-xs">
+          <span>✈️</span>
+          <span>PASSPORT CONTROL</span>
+          <DoodleSparkle size={12} color="#F04432" />
+        </div>
+      </header>
+
+      {/* Main Content Area */}
+      <main className="w-full max-w-5xl my-auto py-4 flex items-center justify-center">
         {children}
-      </div>
+      </main>
 
       {/* Footer */}
-      <div className="mt-8 text-center text-xs text-[#52525b] relative z-10">
-        Encrypted & Private Geographical Archive
-      </div>
+      <footer className="w-full max-w-5xl py-4 flex flex-col sm:flex-row items-center justify-between gap-2 border-t-2 border-[#171313]/10 text-center text-xs font-bold text-[#171313]/60">
+        <div>
+          <span>© {new Date().getFullYear()} ATLAS. Your life, mapped. Encrypted & Private.</span>
+        </div>
+        <div className="flex items-center gap-3 text-[11px] font-black text-[#171313]/70">
+          <span>3D EARTH</span>
+          <span>•</span>
+          <span>PERSONAL MEMORIES</span>
+          <span>•</span>
+          <span>ORION AI</span>
+        </div>
+      </footer>
     </div>
   );
 }
-
