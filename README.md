@@ -84,29 +84,29 @@ And when you wonder where to go next? **Orion**, your AI celestial expedition co
 
 ```mermaid
 flowchart TD
-    User([Explorer / Traveler]) -->|Touch / Mouse Orbit| Globe[3D Three.js WebGL Earth]
-    User -->|Upload Photos| EXIF[exifr EXIF GPS Engine]
-    User -->|Ask Advice| Orion[Orion AI Assistant]
-    User -->|Mobile Bottom Nav| Nav[Touch-First Mobile Nav Bar]
+    User(["Explorer / Traveler"]) -->|Touch / Mouse Orbit| Globe["3D Three.js WebGL Earth"]
+    User -->|Upload Photos| EXIF["exifr EXIF GPS Engine"]
+    User -->|Ask Advice| Orion["Orion AI Assistant"]
+    User -->|Mobile Bottom Nav| Nav["Touch-First Mobile Nav Bar"]
 
-    subgraph Client Application ("ATLAS Bento-Pop Engine")
-        Globe -->|Click Coordinate| Geocoder[Nominatim Reverse Geocoding]
-        EXIF -->|Auto-Pin Location| MemStore[Zustand 5 Experience Store]
+    subgraph ClientApp ["ATLAS Bento-Pop Engine"]
+        Globe -->|Click Coordinate| Geocoder["Nominatim Reverse Geocoding"]
+        EXIF -->|Auto-Pin Location| MemStore["Zustand 5 Experience Store"]
         Orion -->|Fly Camera to Target| Globe
-        Loader[Pixel-Art Flight Loader] -->|Pre-warm Assets & Sync| MemStore
+        Loader["Pixel-Art Flight Loader"] -->|Pre-warm Assets & Sync| MemStore
     end
 
-    subgraph Intelligence & Services
+    subgraph Intelligence ["Intelligence & Services"]
         Orion <-->|Live Grounded Insights| Gemini["Google Gemini 3.5 API"]
-        Geocoder <-->|OpenStreetMap Coordinates| OSM[Nominatim Server]
+        Geocoder <-->|OpenStreetMap Coordinates| OSM["Nominatim Server"]
     end
 
-    subgraph Cloud Fortress ("Supabase Cloud")
-        MemStore <-->|Row Level Security| DB[(PostgreSQL + PostGIS)]
-        Auth[Supabase Auth SSR] <-->|Session Cookies & Verification| MemStore
-        DB --> Locations[locations Table & Geo Index]
-        DB --> Experiences[experiences Table]
-        DB --> Wishlist[wishlist_items Table]
+    subgraph CloudFortress ["Supabase Cloud Fortress"]
+        MemStore <-->|Row Level Security| DB[("PostgreSQL + PostGIS")]
+        Auth["Supabase Auth SSR"] <-->|Session Cookies & Verification| MemStore
+        DB --> Locations["locations Table & Geo Index"]
+        DB --> Experiences["experiences Table"]
+        DB --> Wishlist["wishlist_items Table"]
     end
 ```
 
