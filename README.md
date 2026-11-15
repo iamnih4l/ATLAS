@@ -1,4 +1,4 @@
-# 🌍 ATLAS — The Digital Cartography of Your Life
+# 🌍 ATLAS — The Living 3D Digital Cartography of Your Life
 
 ```
     ___  _____ _      ___  ____  
@@ -10,12 +10,19 @@
 ```
 
 <p align="center">
+  <a href="https://atlas-app-ruby-six.vercel.app/globe">
+    <img src="https://img.shields.io/badge/Live_App-atlas--app--ruby--six.vercel.app-6425F5?style=for-the-badge&logo=vercel&logoColor=white" alt="Live App" />
+  </a>
   <img src="https://img.shields.io/badge/Next.js-16.4-black?style=for-the-badge&logo=next.js" alt="Next.js" />
   <img src="https://img.shields.io/badge/Three.js-WebGL%203D-orange?style=for-the-badge&logo=three.js" alt="Three.js" />
   <img src="https://img.shields.io/badge/Google_Gemini-3.5_Flash-4285F4?style=for-the-badge&logo=google" alt="Google Gemini" />
   <img src="https://img.shields.io/badge/Supabase-PostGIS_%2B_RLS-3ECF8E?style=for-the-badge&logo=supabase" alt="Supabase" />
-  <img src="https://img.shields.io/badge/TypeScript-5.0-blue?style=for-the-badge&logo=typescript" alt="TypeScript" />
   <img src="https://img.shields.io/badge/Design-Bento--Pop-FFF4D9?style=for-the-badge" alt="Bento-Pop Style" />
+  <img src="https://img.shields.io/badge/Mobile-First-FFD45A?style=for-the-badge&logo=apple" alt="Mobile-First" />
+</p>
+
+<p align="center">
+  <b>🌐 Live Production Deployment:</b> <a href="https://atlas-app-ruby-six.vercel.app/globe"><b>https://atlas-app-ruby-six.vercel.app/globe</b></a>
 </p>
 
 <p align="center">
@@ -40,7 +47,7 @@ In modern life, our memories are scattered: lost inside algorithms that optimize
 
 **ATLAS brings back the romanticism of the personal journal.** It combines the archival prestige of Letterboxd with a tactile, gamified 3D Earth. Every milestone you record is pinned to real WGS84 geographic coordinates, preserved with half-star precision, and protected by end-to-end database security.
 
-And when you wonder where to go next? **Orion**, your AI celestial expedition navigator, reads the patterns in your past adventures and charts your next horizon.
+And when you wonder where to go next? **Orion**, your AI celestial expedition companion, reads the patterns in your past adventures and charts your next horizon.
 
 </details>
 
@@ -52,6 +59,8 @@ And when you wonder where to go next? **Orion**, your AI celestial expedition na
 - **Drop Pins with 1 Click**: Click anywhere on continents or oceans — Nominatim reverse-geocodes the exact city and country in real time.
 - **Auto-Extract GPS from Photos**: Drop a camera photo and let `exifr` detect the exact latitude, longitude, camera model, and capture date.
 - **Consult Orion (AI Travel Companion)**: Chat in real time with an AI that knows your travel history and gives grounded recommendations.
+- **Cinematic Pixel-Art Loader**: Watch a retro pixel aeroplane navigate across the globe while your personal coordinates and assets sync.
+- **Touch-First Mobile Experience**: Dedicated bottom navigation bar with 48px+ touch targets and adaptive drawers.
 - **One-Click Wishlist Conversion**: Turn dream destinations into completed memories when you return from your journey.
 
 </details>
@@ -61,8 +70,9 @@ And when you wonder where to go next? **Orion**, your AI celestial expedition na
 <br />
 
 - **Frontend**: Next.js 16 (App Router, Turbopack, React 19), Tailwind CSS v4, Framer Motion, Lucide Icons.
-- **3D Engine**: Three.js WebGL canvas with custom gamified shaders, atmospheric Rayleigh glow, and Cartesian WGS84 spherical coordinate projections.
+- **3D Engine**: Three.js WebGL canvas with custom daylight gamified pop shaders, atmospheric Rayleigh glow, and Cartesian WGS84 spherical coordinate projections.
 - **State Management**: Zustand 5 with local offline persistence and optimistic UI updates.
+- **Authentication**: Supabase Auth with `@supabase/ssr` cookies, session recovery, email confirmation workflows, and Guest Explorer mode.
 - **Artificial Intelligence**: Google Gemini API (`gemini-3.5-flash-lite`) powering conversational travel advice and structured JSON coordinate suggestions.
 - **Cloud Database**: Supabase PostgreSQL 15 + PostGIS spatial geography indexing + Row Level Security (RLS) policies enforcing `auth.uid() = user_id`.
 
@@ -77,20 +87,23 @@ flowchart TD
     User([Explorer / Traveler]) -->|Touch / Mouse Orbit| Globe[3D Three.js WebGL Earth]
     User -->|Upload Photos| EXIF[exifr EXIF GPS Engine]
     User -->|Ask Advice| Orion[Orion AI Assistant]
+    User -->|Mobile Bottom Nav| Nav[Touch-First Mobile Nav Bar]
 
     subgraph Client Application ("ATLAS Bento-Pop Engine")
         Globe -->|Click Coordinate| Geocoder[Nominatim Reverse Geocoding]
         EXIF -->|Auto-Pin Location| MemStore[Zustand 5 Experience Store]
         Orion -->|Fly Camera to Target| Globe
+        Loader[Pixel-Art Flight Loader] -->|Pre-warm Assets & Sync| MemStore
     end
 
     subgraph Intelligence & Services
-        Orion <-->|Live Travel Insights| Gemini["Google Gemini 3.5 API"]
+        Orion <-->|Live Grounded Insights| Gemini["Google Gemini 3.5 API"]
         Geocoder <-->|OpenStreetMap Coordinates| OSM[Nominatim Server]
     end
 
     subgraph Cloud Fortress ("Supabase Cloud")
         MemStore <-->|Row Level Security| DB[(PostgreSQL + PostGIS)]
+        Auth[Supabase Auth SSR] <-->|Session Cookies & Verification| MemStore
         DB --> Locations[locations Table & Geo Index]
         DB --> Experiences[experiences Table]
         DB --> Wishlist[wishlist_items Table]
@@ -99,9 +112,9 @@ flowchart TD
 
 ---
 
-## 🌟 The Five Chronicles of ATLAS
+## 🌟 The Seven Chronicles of ATLAS
 
-### 🌍 Chapter I: The Living Globe (`/globe`)
+### 🌍 Chapter I: The Living 3D Globe (`/globe`)
 - **60 FPS Tactile Orbit**: Built on custom Three.js shaders with atmospheric Rayleigh scattering, warm Bento-Pop landmasses, and zero clutter.
 - **Dual-Marker Cartography**:
   - 🟢 **Emerald Pins (`#10b981`)**: Visited milestones, stamped into reality.
@@ -111,8 +124,29 @@ flowchart TD
 
 ---
 
-### 📸 Chapter II: The Chronicler's Quill (`/memories` & EXIF Magic)
-- **Instant Photo Geocoding**: Drop a vacation photo from your smartphone. `exifr` extracts embedded GPS coordinates, camera hardware, and timestamps, prompting you:
+### ✈️ Chapter II: Cinematic Pixel-Art Loading Experience (`/loading`)
+- **Postcard Flight Manifest**: An original pixel-art scene between authentication and the globe.
+- **Handcrafted Pixel Aeroplane**: A custom 16×16 pixel plane sprite that banks and tilts dynamically along a curved, dotted flight path (`stroke-dasharray="6 6"`).
+- **Progressive Milestones**: Floating pixel clouds, pop-up milestone pins, and rotating travel postcards:
+  - *"PREPARING YOUR ATLAS..."*
+  - *"CHARTING YOUR WORLD..."*
+  - *"GATHERING YOUR MEMORIES..."*
+  - *"GETTING YOUR GLOBE READY..."*
+  - *"YOUR NEXT ADVENTURE AWAITS..."*
+- **Real Functional Synchronization**: Verifies auth session, populates stored journals, and pre-warms 3D textures with timeout protection.
+
+---
+
+### 📱 Chapter III: Touch-First Mobile Experience
+- **Dedicated Mobile Navigation (`MobileBottomNav`)**: Fixed thumb-friendly bottom bar on mobile screens (`< 640px`) with 48px+ touch targets for **Globe**, **Memories**, Center Prominent **Record (+)**, **Discover**, and **Wishlist**.
+- **Compact Top HUD**: Streamlined brand emblem, spotlight search trigger (`⌘K`), and settings access without viewport clutter.
+- **Adaptive Location Drawer**: Responsive slide-up card sheet on mobile viewports (320px–414px) that keeps the 3D canvas interactive.
+- **Mobile-Tuned Controls**: Horizontally scrolling category pills and floating companion placement optimized for handheld usage.
+
+---
+
+### 📸 Chapter IV: The Chronicler's Quill (`/memories` & EXIF Magic)
+- **Instant Photo Geocoding**: Drop a vacation photo from your smartphone. `exifr` extracts embedded GPS coordinates, camera hardware, and timestamps:
   > *"📍 GPS detected in photo! Found: Eiffel Tower, Paris (48.8584° N, 2.2945° E). Confirm and apply location?"*
 - **Letterboxd-Style Half-Star Precision**: Rate memories from `⭐ 0.5` to `⭐⭐⭐⭐⭐ 5.0` with custom half-star hovering.
 - **15 Curated Travel Categories**: *Adventure, Nature, Food & Dining, Travel, Sports, Entertainment, Culture, Architecture, Wildlife, Photography, Spiritual, Family, Hidden Gem, Transit, Other.*
@@ -120,7 +154,7 @@ flowchart TD
 
 ---
 
-### 🌌 Chapter III: Orion — The AI Celestial Companion (`/discover`)
+### 🌌 Chapter V: Orion — The AI Celestial Companion (`/discover`)
 Orion is not a sterile chatbot. Powered by **Google Gemini**, Orion acts as your charismatic expedition navigator:
 
 ```text
@@ -133,11 +167,11 @@ Orion: "Since you rated tandem freefall 5.0, your next horizon is Interlaken,
 - **Next Horizon Mode**: Identifies natural progressions in your adventurous tastes.
 - **Proximity Radar Mode**: Locates hidden spots within striking distance of your current location.
 - **Bucket List Architect**: Crafts rich itineraries from vague travel daydreams.
-- **Grounded Coordinates**: Every recommendation comes with real latitude, longitude, and a one-click **"Fly on Globe"** or **"Save to Wishlist"** action.
+- **In-App Bento Details Modal**: Safely explore recommendations inside ATLAS with verified coordinates, sensory overviews, Orion's curated reasoning, and safe Google Maps lookup.
 
 ---
 
-### ⏳ Chapter IV: The Traveler's Ledger (`/timeline` & `/statistics`)
+### ⏳ Chapter VI: The Traveler's Ledger (`/timeline` & `/statistics`)
 - **The Winding Road Timeline**: Visual chronological milestone badges mapping your life by year and season.
 - **Raw True Analytics**: No vanity metrics. Real computing over your PostgreSQL ledger:
   - Total countries stamped & cities claimed.
@@ -146,11 +180,11 @@ Orion: "Since you rated tandem freefall 5.0, your next horizon is Interlaken,
 
 ---
 
-### 🛡️ Chapter V: The Cloud Fortress (Supabase & PostGIS)
+### 🛡️ Chapter VII: The Cloud Fortress (Supabase & PostGIS)
 - **Zero-Trust Row Level Security (RLS)**: Enforced directly at the PostgreSQL layer via `auth.uid() = user_id`.
+- **Dual-Env Hybrid Authentication**: Uses `@supabase/ssr` with persistent session cookies, email verification workflows, and password visibility toggles (`PasswordInput`).
+- **Guest Explorer Mode**: Instant exploration without mandatory sign-in, with local caching and seamless cloud synchronization upon account creation.
 - **Public Isolation**: System tables like `spatial_ref_sys` have all public API grants revoked — external visitors cannot query or tamper with internal projection tables.
-- **Dual-Env Hybrid Authentication**: Seamlessly supports both `NEXT_PUBLIC_` client tokens and backend `@supabase/server` publishable/secret keys.
-- **Guest Explorer Mode**: Instant exploration without mandatory sign-in, while preserving a frictionless upgrade path to permanent cloud sync.
 
 ---
 
@@ -217,23 +251,29 @@ Open **[http://localhost:3000](http://localhost:3000)** in your browser, pick a 
 
 ## 🧪 Verification Matrix
 
-Every release is validated against 14 automated & manual test scenarios:
+Every release is validated against 20 automated & manual test scenarios:
 
 ```
-[✓] TEST 01: User registration, authentication & guest bypass
-[✓] TEST 02: Real-time geocoding search via Nominatim
-[✓] TEST 03: Experience creation with multi-photo uploads & ratings
-[✓] TEST 04: Three.js Cartesian coordinate spherical marker projection
-[✓] TEST 05: Fly-to-coordinate camera interpolation & detail drawer
-[✓] TEST 06: Spatial multi-tenancy (multiple memories per location)
-[✓] TEST 07: Client-side EXIF GPS parsing via exifr
-[✓] TEST 08: Google Drive cloud photo import flow
-[✓] TEST 09: Google Gemini Orion conversational AI integration
-[✓] TEST 10: AI recommendation to wishlist conversion
-[✓] TEST 11: Distinct violet globe styling for wishlist items
-[✓] TEST 12: "Done! Record It" bucket list resolution
-[✓] TEST 13: Dynamic analytics & Recharts aggregations
-[✓] TEST 14: Row Level Security user data isolation
+[✓] TEST 01: User registration, Supabase authentication & session persistence
+[✓] TEST 02: Password visibility toggle (Eye/EyeOff) & accessible form semantics
+[✓] TEST 03: Email verification workflow & unconfirmed account guidance
+[✓] TEST 04: Zero-friction guest explorer mode with cookie bridge
+[✓] TEST 05: Cinematic pixel-art flight manifest loading experience (/loading)
+[✓] TEST 06: Real-time geocoding search via Nominatim
+[✓] TEST 07: Experience creation with multi-photo uploads & half-star ratings
+[✓] TEST 08: Three.js Cartesian coordinate spherical marker projection
+[✓] TEST 09: Fly-to-coordinate camera interpolation & detail drawer
+[✓] TEST 10: Spatial multi-tenancy (multiple memories per location)
+[✓] TEST 11: Client-side EXIF GPS parsing via exifr
+[✓] TEST 12: Google Drive cloud photo import flow
+[✓] TEST 13: Google Gemini Orion conversational AI integration
+[✓] TEST 14: In-app recommendation details modal with safe Google Maps lookup
+[✓] TEST 15: AI recommendation to wishlist conversion
+[✓] TEST 16: Distinct violet globe styling for wishlist items
+[✓] TEST 17: "Done! Record It" bucket list resolution
+[✓] TEST 18: Touch-first mobile bottom navigation (MobileBottomNav)
+[✓] TEST 19: Mobile responsiveness across 320px, 375px, 414px, and 768px viewports
+[✓] TEST 20: Row Level Security user data isolation & PostGIS protection
 ```
 
 ---
@@ -244,4 +284,4 @@ Every release is validated against 14 automated & manual test scenarios:
 > — **Mark Twain**
 
 **Built with passion by Nihal & the ATLAS team.**  
-*Contributions, issue reports, and travel stories are always welcome.*
+*Live at [https://atlas-app-ruby-six.vercel.app/globe](https://atlas-app-ruby-six.vercel.app/globe)*

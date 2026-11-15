@@ -2,7 +2,8 @@
 
 This package contains the Next.js 16 web application for **ATLAS**, the living 3D digital cartography of your life.
 
-For the comprehensive story, architecture diagrams, Orion AI guide, and gamification achievements, see the main [Root README](../README.md).
+- **🌐 Live Production URL**: [https://atlas-app-ruby-six.vercel.app/globe](https://atlas-app-ruby-six.vercel.app/globe)
+- **📖 Comprehensive Documentation**: See the main [Root README](../README.md) for full architecture diagrams, Orion AI guide, gamification achievements, and database setup.
 
 ---
 
@@ -12,7 +13,7 @@ For the comprehensive story, architecture diagrams, Orion AI guide, and gamifica
 # Start development server with Webpack & 3D Earth
 pnpm dev
 
-# Type check
+# Run TypeScript type check
 pnpm exec tsc --noEmit
 
 # Production build
