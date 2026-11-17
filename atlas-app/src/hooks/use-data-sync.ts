@@ -13,6 +13,35 @@ function isUuid(id?: string | null): boolean {
 }
 
 /**
+ * Trigger an immediate sync from any component without mounting duplicate Realtime channels.
+ */
+export function triggerAtlasSync(forceMigration = true): Promise<boolean> {
+  if (typeof window === 'undefined') return Promise.resolve(false);
+  return new Promise((resolve) => {
+    const requestId = `sync-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    const timeout = setTimeout(() => {
+      window.removeEventListener('atlas:sync-done', onDone as EventListener);
+      resolve(true);
+    }, 8000);
+
+    const onDone = (e: CustomEvent) => {
+      if (e.detail?.requestId === requestId) {
+        clearTimeout(timeout);
+        window.removeEventListener('atlas:sync-done', onDone as EventListener);
+        resolve(Boolean(e.detail?.ok));
+      }
+    };
+
+    window.addEventListener('atlas:sync-done', onDone as EventListener);
+    window.dispatchEvent(
+      new CustomEvent('atlas:sync-now', {
+        detail: { forceMigration, requestId },
+      })
+    );
+  });
+}
+
+/**
  * Non-destructive merge: keeps all authoritative server records,
  * and preserves any unsynced local records (temp IDs or offline creations)
  * that have not yet been persisted to Supabase — NEVER silently drops user pins.
@@ -29,11 +58,8 @@ function mergeRecords<T extends { id: string; title?: string; user_id?: string }
   );
 
   for (const local of localItems) {
-    // Already present by exact ID
     if (serverIds.has(local.id)) continue;
 
-    // If this is an unsynced/local-only record (non-UUID or non-matching user_id),
-    // preserve it unless an equivalent title was already migrated to server.
     const isLocalUnsynced = !isUuid(local.id) || local.user_id !== userId;
     if (isLocalUnsynced) {
       const normalizedTitle = (local.title || '').trim().toLowerCase();
@@ -59,7 +85,6 @@ function mergeLocations(
     if (loc?.id) locMap.set(loc.id, loc);
   }
 
-  // Keep local locations that are still referenced by any preserved item
   const referencedIds = new Set<string>();
   experiences.forEach((e) => {
     if (e.location_id) referencedIds.add(e.location_id);
@@ -134,17 +159,15 @@ export function useDataSync() {
   }, []);
 
   const syncData = useCallback(
-    async (forceMigration = false) => {
-      if (!user || user.isGuest || isSyncingRef.current) return;
-      if (!useAtlasStore.persist.hasHydrated()) return;
+    async (forceMigration = false): Promise<boolean> => {
+      if (!user || user.isGuest || isSyncingRef.current) return false;
+      if (!useAtlasStore.persist.hasHydrated()) return false;
 
       try {
         isSyncingRef.current = true;
 
-        // Always read freshest store state directly to prevent stale closures
         const current = useAtlasStore.getState();
 
-        // Snapshot non-empty local state as a safety net before syncing
         saveSafetyBackup({
           experiences: current.experiences,
           wishlistItems: current.wishlistItems,
@@ -152,7 +175,6 @@ export function useDataSync() {
           locations: current.locations,
         });
 
-        // Check ALL collections for unsynced local records
         const hasUnsyncedExperiences = current.experiences.some(
           (e) => !isUuid(e.id) || e.user_id !== user.id
         );
@@ -170,9 +192,14 @@ export function useDataSync() {
           hasUnsyncedAdventures;
 
         const res = needsMigration
-          ? await fetch('/api/sync', {
+          ? await fetch(`/api/sync?t=${Date.now()}`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              cache: 'no-store',
+              credentials: 'include',
+              headers: {
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache',
+              },
               body: JSON.stringify({
                 localExperiences: current.experiences,
                 localWishlistItems: current.wishlistItems,
@@ -180,14 +207,20 @@ export function useDataSync() {
                 localLocations: current.locations,
               }),
             })
-          : await fetch('/api/sync');
+          : await fetch(`/api/sync?t=${Date.now()}`, {
+              method: 'GET',
+              cache: 'no-store',
+              credentials: 'include',
+              headers: {
+                'Cache-Control': 'no-cache',
+              },
+            });
 
-        if (!res.ok) return;
+        if (!res.ok) return false;
 
         const data = await res.json();
-        if (!data.success) return;
+        if (!data.success) return false;
 
-        // Re-read freshest store state right before applying merge (in case user added a pin mid-flight)
         const latest = useAtlasStore.getState();
 
         const mergedExperiences = mergeRecords<Experience>(
@@ -224,8 +257,11 @@ export function useDataSync() {
         if (data.profile?.fullName) {
           useAuth.getState().updateUser({ fullName: data.profile.fullName });
         }
+
+        return true;
       } catch (err) {
         console.warn('Atlas data synchronization warning:', err);
+        return false;
       } finally {
         isSyncingRef.current = false;
       }
@@ -240,7 +276,30 @@ export function useDataSync() {
     }
   }, [isInitialized, isHydrated, user?.id, syncData]);
 
-  // Window focus & online reconnect listeners
+  // Listen to manual sync requests from anywhere in the app (e.g. MobileBottomNav "Sync Now")
+  useEffect(() => {
+    if (!isHydrated || !user || user.isGuest) return;
+
+    const handleSyncNow = async (e: Event) => {
+      const custom = e as CustomEvent;
+      const ok = await syncData(Boolean(custom.detail?.forceMigration));
+      if (custom.detail?.requestId) {
+        window.dispatchEvent(
+          new CustomEvent('atlas:sync-done', {
+            detail: { requestId: custom.detail.requestId, ok },
+          })
+        );
+      }
+    };
+
+    window.addEventListener('atlas:sync-now', handleSyncNow);
+    return () => {
+      window.removeEventListener('atlas:sync-now', handleSyncNow);
+    };
+  }, [isHydrated, user, syncData]);
+
+  // Window focus, online reconnect, and 15-second active-tab polling fallback
+  // (Ensures desktop -> mobile updates arrive even if Supabase Realtime publication isn't enabled yet)
   useEffect(() => {
     if (!isHydrated || !user || user.isGuest) return;
 
@@ -254,11 +313,18 @@ export function useDataSync() {
       syncData();
     };
 
+    const intervalId = setInterval(() => {
+      if (document.visibilityState === 'visible' && navigator.onLine) {
+        syncData();
+      }
+    }, 15000);
+
     window.addEventListener('visibilitychange', handleFocusOrVisible);
     window.addEventListener('focus', handleFocusOrVisible);
     window.addEventListener('online', handleOnline);
 
     return () => {
+      clearInterval(intervalId);
       window.removeEventListener('visibilitychange', handleFocusOrVisible);
       window.removeEventListener('focus', handleFocusOrVisible);
       window.removeEventListener('online', handleOnline);

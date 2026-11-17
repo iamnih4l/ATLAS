@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import { useAtlasStore } from '@/lib/store';
 import { useAuth } from '@/hooks/use-auth';
-import { useDataSync } from '@/hooks/use-data-sync';
+import { triggerAtlasSync } from '@/hooks/use-data-sync';
 import { isDreamingItem } from '@/lib/wishlist-utils';
 import { cn } from '@/lib/utils';
 
@@ -32,7 +32,6 @@ export function MobileBottomNav() {
   const [syncFeedback, setSyncFeedback] = useState<string | null>(null);
 
   const { user } = useAuth();
-  const { syncData } = useDataSync();
 
   const {
     experiences,
@@ -53,8 +52,8 @@ export function MobileBottomNav() {
     setIsManualSyncing(true);
     setSyncFeedback(null);
     try {
-      await syncData(true);
-      setSyncFeedback('All devices synced!');
+      const ok = await triggerAtlasSync(true);
+      setSyncFeedback(ok ? 'All devices synced!' : 'Sign in to sync');
       setTimeout(() => setSyncFeedback(null), 3000);
     } catch {
       setSyncFeedback('Sync failed');

@@ -9,6 +9,14 @@ import {
 } from '@/lib/adventure-db';
 import { Adventure, AdventureDestination } from '@/types';
 
+export const dynamic = 'force-dynamic';
+
+const NO_CACHE_HEADERS = {
+  'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+  Pragma: 'no-cache',
+  Expires: '0',
+};
+
 async function resolveCategoryId(supabase: any, category_id?: string | null): Promise<string | null> {
   if (!category_id) return null;
   if (UUID_REGEX.test(category_id)) return category_id;
@@ -130,10 +138,14 @@ export async function GET() {
 
     const unified = await fetchUnifiedUserState(supabase, user.id);
 
-    return NextResponse.json({
-      success: true,
-      ...unified,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        userId: user.id,
+        ...unified,
+      },
+      { headers: NO_CACHE_HEADERS }
+    );
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Server error' }, { status: 500 });
   }
@@ -284,11 +296,15 @@ export async function POST(request: Request) {
     // 4. Return fresh unified server state
     const unified = await fetchUnifiedUserState(supabase, user.id);
 
-    return NextResponse.json({
-      success: true,
-      migrated: true,
-      ...unified,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        migrated: true,
+        userId: user.id,
+        ...unified,
+      },
+      { headers: NO_CACHE_HEADERS }
+    );
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Server error' }, { status: 500 });
   }

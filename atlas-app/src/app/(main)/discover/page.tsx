@@ -4,14 +4,18 @@ import React, { useState, useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAtlasStore } from '@/lib/store';
+import { useAuth } from '@/hooks/use-auth';
 import { getRecommendationsForMode } from '@/lib/ai-companion';
 import {
   AIRecommendation,
   StructuredAdventurePayload,
+  StructuredItineraryStop,
   AdventureIntent,
   Adventure,
   AIConversationThread,
   AIMessage,
+  WishlistItem,
+  Location,
 } from '@/types';
 import { cn } from '@/lib/utils';
 import {
@@ -54,15 +58,19 @@ function DiscoverContent() {
   const searchParams = useSearchParams();
   const linkedAdventureId = searchParams.get('adventure');
 
+  const { user } = useAuth();
   const {
     experiences,
     locations,
     wishlistItems,
     adventures,
     addAdventure,
+    addWishlistItem,
+    addLocation,
     setSelectedAdventure,
     setFlyToTarget,
-    saveRecommendationToWishlist,
+    setPendingLocation,
+    setExperienceModalOpen,
     conversations,
     saveConversation,
     activeConversationId,
@@ -78,6 +86,8 @@ function DiscoverContent() {
   const [recommendations, setRecommendations] = useState<AIRecommendation[]>([]);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [savedAdventureTitles, setSavedAdventureTitles] = useState<Set<string>>(new Set());
+  const [savedDreamBatchTitles, setSavedDreamBatchTitles] = useState<Set<string>>(new Set());
+  const [savedDreamKeys, setSavedDreamKeys] = useState<Set<string>>(new Set());
   const [selectedRecForDetails, setSelectedRecForDetails] = useState<AIRecommendation | null>(null);
 
   // Thread and History State
@@ -200,9 +210,184 @@ function DiscoverContent() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
-  const handleSaveToWishlist = (rec: AIRecommendation) => {
-    saveRecommendationToWishlist(rec);
+  // Persist a single Dream List item (location or activity) both locally and to Supabase
+  const persistDreamListPin = async (params: {
+    title: string;
+    description?: string | null;
+    notes?: string | null;
+    source: string;
+    imageUrl?: string | null;
+    locationName: string;
+    city?: string | null;
+    country: string;
+    latitude?: number | null;
+    longitude?: number | null;
+    tags?: string[];
+  }) => {
+    const now = new Date().toISOString();
+    const lat = typeof params.latitude === 'number' && Number.isFinite(params.latitude) ? params.latitude : null;
+    const lng = typeof params.longitude === 'number' && Number.isFinite(params.longitude) ? params.longitude : null;
+
+    let targetLoc: Location | undefined;
+    if (lat !== null && lng !== null) {
+      const existingLoc = useAtlasStore
+        .getState()
+        .locations.find(
+          (l) => Math.abs(l.latitude - lat) < 0.0005 && Math.abs(l.longitude - lng) < 0.0005
+        );
+      if (existingLoc) {
+        targetLoc = existingLoc;
+      } else {
+        targetLoc = {
+          id: `loc-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          name: params.locationName,
+          city: params.city || null,
+          country: params.country || 'Earth',
+          venue: null,
+          latitude: lat,
+          longitude: lng,
+          place_id: null,
+          created_at: now,
+          updated_at: now,
+        };
+        addLocation(targetLoc);
+      }
+    }
+
+    // Prevent exact duplicate title in local wishlist
+    const alreadyExists = useAtlasStore
+      .getState()
+      .wishlistItems.some(
+        (w) => w.title.trim().toLowerCase() === params.title.trim().toLowerCase()
+      );
+    if (alreadyExists) return;
+
+    const tempId = `wish-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    const newItem: WishlistItem = {
+      id: tempId,
+      user_id: user?.id || 'guest-user',
+      title: params.title,
+      location_id: targetLoc?.id || null,
+      description: params.description || null,
+      category_id: '1',
+      priority: 'high',
+      status: 'dreaming',
+      tags: params.tags || ['Dreaming', 'Orion AI'],
+      estimated_budget: null,
+      notes: params.notes || null,
+      source: params.source,
+      reference_image_url:
+        params.imageUrl ||
+        'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80',
+      is_completed: false,
+      completed_experience_id: null,
+      created_at: now,
+      updated_at: now,
+      location: targetLoc,
+    };
+
+    addWishlistItem(newItem);
+
+    if (user && !user.isGuest) {
+      try {
+        const res = await fetch('/api/wishlist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: newItem.title,
+            description: newItem.description,
+            category_id: newItem.category_id,
+            priority: newItem.priority,
+            status: 'dreaming',
+            tags: newItem.tags,
+            notes: newItem.notes,
+            source: newItem.source,
+            reference_image_url: newItem.reference_image_url,
+            is_completed: false,
+            location: targetLoc,
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.id) {
+            useAtlasStore.getState().updateWishlistItem(tempId, {
+              id: data.id,
+              user_id: data.user_id || user.id,
+              location_id: data.location_id,
+              location: data.location || targetLoc,
+            });
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to persist Dream List item to server:', err);
+      }
+    }
+  };
+
+  const handleSaveToWishlist = async (rec: AIRecommendation) => {
     setSavedIds((prev) => new Set(prev).add(rec.id));
+    await persistDreamListPin({
+      title: rec.title,
+      description: `${rec.description}\n\nWhy recommended: ${rec.reason}`,
+      notes: rec.reason,
+      source: 'Orion AI Dream Recommendation',
+      imageUrl: rec.image_url,
+      locationName: rec.location_name,
+      country: rec.location_name.split(',').pop()?.trim() || 'Earth',
+      latitude: rec.latitude,
+      longitude: rec.longitude,
+      tags: ['Dreaming', 'Orion AI'],
+    });
+  };
+
+  const handleAddStopToDreamList = async (
+    stop: StructuredItineraryStop,
+    activityName?: string
+  ) => {
+    const key = activityName ? `${stop.name}::${activityName}` : stop.name;
+    setSavedDreamKeys((prev) => new Set(prev).add(key));
+
+    const title = activityName ? `${activityName} — ${stop.name}` : stop.name;
+    const description = activityName
+      ? `Activity at ${stop.name}${stop.city ? `, ${stop.city}` : ''}, ${stop.country}.${stop.notes ? ` ${stop.notes}` : ''}`
+      : stop.notes ||
+        (stop.activities?.length
+          ? `Top activities: ${stop.activities.join(' • ')}`
+          : `Dream destination in ${[stop.city, stop.country].filter(Boolean).join(', ')}`);
+
+    await persistDreamListPin({
+      title,
+      description,
+      notes: stop.activities?.length ? `Activities: ${stop.activities.join(', ')}` : stop.notes,
+      source: activityName ? 'Orion AI Activity Dream' : 'Orion AI Dream Destination',
+      locationName: stop.name,
+      city: stop.city,
+      country: stop.country,
+      latitude: stop.latitude,
+      longitude: stop.longitude,
+      tags: activityName ? ['Dreaming', 'Activity', 'Orion AI'] : ['Dreaming', 'Bucket List', 'Orion AI'],
+    });
+  };
+
+  const handleAddAllStopsToDreamList = async (preview: StructuredAdventurePayload) => {
+    setSavedDreamBatchTitles((prev) => new Set(prev).add(preview.title));
+    const newKeys = new Set(savedDreamKeys);
+    for (const stop of preview.stops) {
+      newKeys.add(stop.name);
+      await handleAddStopToDreamList(stop);
+    }
+    setSavedDreamKeys(newKeys);
+  };
+
+  const handleLogStopAsMemory = (stop: StructuredItineraryStop) => {
+    setPendingLocation({
+      latitude: stop.latitude || 0,
+      longitude: stop.longitude || 0,
+      name: stop.name,
+      city: stop.city || undefined,
+      country: stop.country || undefined,
+    });
+    setExperienceModalOpen(true);
   };
 
   const handleFly = (rec: AIRecommendation) => {
@@ -430,9 +615,14 @@ function DiscoverContent() {
     }
   };
 
-  // View on 3D Globe with Camera Flight & Great-Circle Arcs
+  // View on 3D Globe — automatically routes dreaming/bucket_list to Dream List & planned trips to Adventures
   const handleViewAdventureOnGlobe = async (preview: StructuredAdventurePayload) => {
-    await handleSaveAdventure(preview);
+    const isDreamIntent = preview.status === 'dreaming' || preview.intent === 'bucket_list';
+    if (isDreamIntent) {
+      await handleAddAllStopsToDreamList(preview);
+    } else {
+      await handleSaveAdventure(preview);
+    }
     const firstStop = preview.stops[0];
     if (firstStop && firstStop.latitude && firstStop.longitude) {
       setFlyToTarget({
@@ -445,9 +635,9 @@ function DiscoverContent() {
   };
 
   const promptSuggestions = [
+    'I want to visit the Seven Wonders of the World',
     'Plan a 5-day trip to Switzerland: Zurich, Lucerne, Interlaken, Zermatt',
     'I dream of seeing Mount Fuji and climbing the summit',
-    'Where should I travel for an adrenaline-fueled nature escape?',
     'I visited Paris last summer and loved the historic architecture',
   ];
 
@@ -638,56 +828,159 @@ function DiscoverContent() {
                       </div>
 
                       <div className="space-y-2">
-                        {m.adventure_preview.stops.map((stop, sIdx) => (
-                          <div
-                            key={sIdx}
-                            className="p-2.5 bg-[#FFF4D9] rounded-xl border border-[#171313] text-xs flex flex-col gap-1"
-                          >
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="font-black text-[#171313] flex items-center gap-1.5">
-                                <span className="w-5 h-5 rounded-full bg-[#6425F5] text-white text-[10px] font-black inline-flex items-center justify-center">
-                                  {sIdx + 1}
+                        {m.adventure_preview.stops.map((stop, sIdx) => {
+                          const isStopSaved =
+                            savedDreamKeys.has(stop.name) ||
+                            wishlistItems.some(
+                              (w) => w.title.trim().toLowerCase() === stop.name.trim().toLowerCase()
+                            );
+                          return (
+                            <div
+                              key={sIdx}
+                              className="p-2.5 bg-[#FFF4D9] rounded-xl border border-[#171313] text-xs flex flex-col gap-1.5"
+                            >
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <span className="font-black text-[#171313] flex items-center gap-1.5">
+                                  <span className="w-5 h-5 rounded-full bg-[#6425F5] text-white text-[10px] font-black inline-flex items-center justify-center shrink-0">
+                                    {sIdx + 1}
+                                  </span>
+                                  {stop.name}
                                 </span>
-                                {stop.name}
-                              </span>
-                              {stop.latitude && stop.longitude && (
-                                <span className="text-[10px] font-mono text-[#171313]/70">
-                                  {stop.latitude.toFixed(2)}°, {stop.longitude.toFixed(2)}°
+
+                                {/* Direct Per-Location Actions from AI */}
+                                <div className="flex items-center gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleAddStopToDreamList(stop)}
+                                    disabled={isStopSaved}
+                                    className={cn(
+                                      'px-2 py-0.5 rounded-lg text-[10px] font-black border border-[#171313] transition-all flex items-center gap-1 cursor-pointer',
+                                      isStopSaved
+                                        ? 'bg-emerald-500 text-white cursor-default'
+                                        : 'bg-[#FFD45A] hover:bg-[#ffc72c] text-[#171313] shadow-pop-2xs'
+                                    )}
+                                    title="Pin this location directly to your Dream List & Bucket List"
+                                  >
+                                    {isStopSaved ? (
+                                      <>
+                                        <Check className="w-3 h-3 stroke-[3]" />
+                                        <span>In Dream List</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Sparkles className="w-3 h-3 stroke-[2.5]" />
+                                        <span>+ Dream List</span>
+                                      </>
+                                    )}
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleLogStopAsMemory(stop)}
+                                    className="px-2 py-0.5 rounded-lg text-[10px] font-black bg-white hover:bg-[#F04432] hover:text-white text-[#171313] border border-[#171313] transition-all flex items-center gap-1 cursor-pointer"
+                                    title="Log this location as a Visited Memory"
+                                  >
+                                    <MapPin className="w-3 h-3 stroke-[2.5]" />
+                                    <span>+ Memory</span>
+                                  </button>
+                                </div>
+                              </div>
+
+                              <p className="text-[11px] text-[#171313]/70 font-bold ml-6.5 flex items-center gap-2 flex-wrap">
+                                <span>
+                                  {[stop.city, stop.country].filter(Boolean).join(', ')}
+                                  {stop.day_number ? ` • Day ${stop.day_number}` : ''}
                                 </span>
+                                {stop.latitude && stop.longitude ? (
+                                  <span className="text-[10px] font-mono text-[#171313]/60">
+                                    ({stop.latitude.toFixed(2)}°, {stop.longitude.toFixed(2)}°)
+                                  </span>
+                                ) : null}
+                              </p>
+
+                              {stop.activities && stop.activities.length > 0 && (
+                                <div className="flex flex-wrap gap-1.5 ml-6.5 mt-0.5">
+                                  {stop.activities.map((act, aIdx) => {
+                                    const actKey = `${stop.name}::${act}`;
+                                    const actTitle = `${act} — ${stop.name}`;
+                                    const isActSaved =
+                                      savedDreamKeys.has(actKey) ||
+                                      wishlistItems.some(
+                                        (w) =>
+                                          w.title.trim().toLowerCase() ===
+                                          actTitle.trim().toLowerCase()
+                                      );
+                                    return (
+                                      <button
+                                        key={aIdx}
+                                        type="button"
+                                        onClick={() => handleAddStopToDreamList(stop, act)}
+                                        disabled={isActSaved}
+                                        className={cn(
+                                          'text-[10px] font-black border border-[#171313] px-2 py-0.5 rounded-lg transition-all flex items-center gap-1 cursor-pointer',
+                                          isActSaved
+                                            ? 'bg-emerald-500 text-white cursor-default'
+                                            : 'bg-white hover:bg-[#6425F5] hover:text-white text-[#171313]'
+                                        )}
+                                        title={
+                                          isActSaved
+                                            ? 'Added to Dream List'
+                                            : `Click to add "${act}" directly to your Dream List`
+                                        }
+                                      >
+                                        {isActSaved ? (
+                                          <Check className="w-2.5 h-2.5 stroke-[3]" />
+                                        ) : (
+                                          <Plus className="w-2.5 h-2.5 stroke-[3]" />
+                                        )}
+                                        <span>{act}</span>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              )}
+
+                              {stop.notes && (
+                                <p className="text-[11px] text-[#171313]/80 italic ml-6.5 mt-0.5">
+                                  &ldquo;{stop.notes}&rdquo;
+                                </p>
                               )}
                             </div>
-
-                            <p className="text-[11px] text-[#171313]/70 font-bold ml-6.5">
-                              {[stop.city, stop.country].filter(Boolean).join(', ')}
-                              {stop.day_number ? ` • Day ${stop.day_number}` : ''}
-                            </p>
-
-                            {stop.activities && stop.activities.length > 0 && (
-                              <div className="flex flex-wrap gap-1 ml-6.5 mt-0.5">
-                                {stop.activities.map((act, aIdx) => (
-                                  <span
-                                    key={aIdx}
-                                    className="text-[10px] font-black bg-white border border-[#171313] px-2 py-0.5 rounded text-[#171313]"
-                                  >
-                                    ✦ {act}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-
-                            {stop.notes && (
-                              <p className="text-[11px] text-[#171313]/80 italic ml-6.5 mt-0.5">
-                                &ldquo;{stop.notes}&rdquo;
-                              </p>
-                            )}
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
 
-                    {/* Action Bar */}
+                    {/* Action Bar: Explicit Dream List vs Planned Adventure Controls */}
                     <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-[#171313]/15">
                       <button
+                        type="button"
+                        onClick={() => handleAddAllStopsToDreamList(m.adventure_preview!)}
+                        disabled={savedDreamBatchTitles.has(m.adventure_preview.title)}
+                        className={cn(
+                          'py-2 px-4 rounded-xl text-xs font-black border-2 border-[#171313] shadow-pop-xs transition-all flex items-center gap-1.5 cursor-pointer',
+                          savedDreamBatchTitles.has(m.adventure_preview.title)
+                            ? 'bg-emerald-500 text-white cursor-default'
+                            : 'bg-[#F04432] hover:bg-[#d63626] text-white'
+                        )}
+                      >
+                        {savedDreamBatchTitles.has(m.adventure_preview.title) ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 stroke-[3]" />
+                            <span>Added All to Dream List!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-3.5 h-3.5 stroke-[2.5]" />
+                            <span>
+                              ✦ Add All to Dream List ({m.adventure_preview.stops.length})
+                            </span>
+                          </>
+                        )}
+                      </button>
+
+                      <button
+                        type="button"
                         onClick={() => handleSaveAdventure(m.adventure_preview!)}
                         disabled={savedAdventureTitles.has(m.adventure_preview.title)}
                         className={cn(
@@ -700,17 +993,18 @@ function DiscoverContent() {
                         {savedAdventureTitles.has(m.adventure_preview.title) ? (
                           <>
                             <Check className="w-3.5 h-3.5 stroke-[3]" />
-                            <span>Saved to Passport & Globe!</span>
+                            <span>Saved as Planned Adventure!</span>
                           </>
                         ) : (
                           <>
                             <BookmarkCheck className="w-3.5 h-3.5 stroke-[2.5]" />
-                            <span>Save Adventure</span>
+                            <span>Save as Planned Adventure</span>
                           </>
                         )}
                       </button>
 
                       <button
+                        type="button"
                         onClick={() => handleViewAdventureOnGlobe(m.adventure_preview!)}
                         className="py-2 px-4 rounded-xl text-xs font-black bg-[#6425F5] hover:bg-[#521ec9] text-white border-2 border-[#171313] shadow-pop-xs transition-all flex items-center gap-1.5 cursor-pointer"
                       >
@@ -719,6 +1013,7 @@ function DiscoverContent() {
                       </button>
 
                       <button
+                        type="button"
                         onClick={() =>
                           setChatInput(
                             `Can you suggest top scenic viewpoints and authentic dining in ${m.adventure_preview?.stops[0]?.name || 'this itinerary'}?`

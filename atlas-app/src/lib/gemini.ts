@@ -196,11 +196,94 @@ async function generateFallbackOrionChat(
     }
   }
 
+  // 1.5. Seven Wonders of the World Bucket List Detection
+  if (text.includes('seven wonders') || text.includes('7 wonders')) {
+    const wondersStops: StructuredItineraryStop[] = [
+      {
+        name: 'Great Wall of China',
+        city: 'Beijing',
+        country: 'China',
+        latitude: 40.4319,
+        longitude: 116.5704,
+        activities: ['Hike Mutianyu section at sunrise', 'Toboggan ride down the wall'],
+        notes: 'Iconic ancient fortification stretching across northern China.',
+      },
+      {
+        name: 'Petra',
+        city: "Ma'an",
+        country: 'Jordan',
+        latitude: 30.3285,
+        longitude: 35.4444,
+        activities: ['Walk through the Siq canyon', 'Petra by Night candlelight experience', 'Hike to the Monastery'],
+        notes: 'Rose-red Nabataean city carved directly into sandstone cliffs.',
+      },
+      {
+        name: 'The Colosseum',
+        city: 'Rome',
+        country: 'Italy',
+        latitude: 41.8902,
+        longitude: 12.4922,
+        activities: ['Arena floor & underground tour', 'Roman Forum sunset walk'],
+        notes: 'Monumental ancient amphitheatre at the heart of Rome.',
+      },
+      {
+        name: 'Chichen Itza',
+        city: 'Yucatán',
+        country: 'Mexico',
+        latitude: 20.6843,
+        longitude: -88.5678,
+        activities: ['Explore El Castillo pyramid at dawn', 'Swim in Cenote Ik Kil'],
+        notes: 'UNESCO Mayan archaeological marvel.',
+      },
+      {
+        name: 'Machu Picchu',
+        city: 'Cusco',
+        country: 'Peru',
+        latitude: -13.1631,
+        longitude: -72.545,
+        activities: ['Watch sunrise from Sun Gate (Inti Punku)', 'Climb Huayna Picchu peak'],
+        notes: '15th-century Incan citadel high in the Andes Mountains.',
+      },
+      {
+        name: 'Taj Mahal',
+        city: 'Agra',
+        country: 'India',
+        latitude: 27.1751,
+        longitude: 78.0421,
+        activities: ['Sunrise reflection photography', 'Sunset view from Mehtab Bagh'],
+        notes: 'Ivory-white marble mausoleum on the Yamuna river bank.',
+      },
+      {
+        name: 'Christ the Redeemer',
+        city: 'Rio de Janeiro',
+        country: 'Brazil',
+        latitude: -22.9519,
+        longitude: -43.2105,
+        activities: ['Corcovado rack railway ascent', 'Panoramic view over Guanabara Bay'],
+        notes: 'Iconic Art Deco statue crowning Mount Corcovado.',
+      },
+    ];
+
+    return {
+      reply:
+        "Visiting the New Seven Wonders of the World is the ultimate global bucket list! 🌍✨ I've mapped all 7 legendary wonders with verified GPS coordinates and signature activities.\n\nClick **✦ Add All to Dream List** below to add all 7 destinations straight into your Dream List & Bucket List (and pin them to your 3D globe), or click any individual wonder or activity chip to add just the ones you want!",
+      intent: 'bucket_list',
+      adventure_preview: {
+        intent: 'bucket_list',
+        title: 'The Seven Wonders of the World',
+        description: 'Bucket list collection of all seven iconic New Wonders of the World.',
+        status: 'dreaming',
+        stops: wondersStops,
+      },
+    };
+  }
+
   // 2. Bucket List / Dreaming Detection
   if (
     text.includes('dream') ||
     text.includes('bucket list') ||
     text.includes('always wanted') ||
+    text.includes('want to visit') ||
     text.includes('wish to visit') ||
     text.includes('fuji') ||
     text.includes('tromso') ||
@@ -347,10 +430,10 @@ export async function chatWithOrionGemini(
 
 Your Mission:
 1. Understand the traveler's intent:
-   - "trip_planning": User is planning a trip, road trip, multi-city route, or itinerary (e.g., "Plan a 5-day trip to Switzerland: Zurich, Lucerne, Interlaken, Zermatt").
-   - "bucket_list": User is dreaming about or yearning to visit a place (e.g., "I've always wanted to see Mount Fuji").
+   - "trip_planning": User is explicitly planning a scheduled trip, multi-day itinerary, or road trip with dates/duration (e.g., "Plan a 5-day trip to Switzerland: Zurich, Lucerne, Interlaken, Zermatt"). Set "status": "planned".
+   - "bucket_list": User expresses a desire, wish, dream, or bucket-list goal to visit places or do activities (e.g., "I want to visit the seven wonders of the world", "I've always wanted to see Mount Fuji", "I want to skydive in Dubai", "Add Kyoto to my dream list"). ALWAYS set "status": "dreaming" for these!
    - "explicit_save": User explicitly requests to save/record an adventure or destination.
-   - "completed_experience": User is reflecting on past trips they already completed (e.g., "I visited Paris last summer and went to the Louvre").
+   - "completed_experience": User is reflecting on past trips they already completed (e.g., "I visited Paris last summer and went to the Louvre"). Set "status": "completed".
    - "general_chat": Travel tips, advice, gear, or general conversation.
 
 2. Tone & Voice:

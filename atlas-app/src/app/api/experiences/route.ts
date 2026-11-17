@@ -1,62 +1,11 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { UUID_REGEX, resolveOrCreateLocationId } from '@/lib/adventure-db';
 
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export const dynamic = 'force-dynamic';
 
 async function resolveLocationId(supabase: any, location: any, location_id?: string | null): Promise<string | null> {
-  if (location_id && UUID_REGEX.test(location_id)) {
-    return location_id;
-  }
-
-  if (location && typeof location.latitude === 'number' && typeof location.longitude === 'number') {
-    // 1. Check if location exists by place_id
-    if (location.place_id) {
-      const { data: existingByPlace } = await supabase
-        .from('locations')
-        .select('id')
-        .eq('place_id', location.place_id)
-        .maybeSingle();
-
-      if (existingByPlace?.id) {
-        return existingByPlace.id;
-      }
-    }
-
-    // 2. Check by coordinates proximity
-    const { data: existingByCoords } = await supabase
-      .from('locations')
-      .select('id')
-      .gte('latitude', location.latitude - 0.0002)
-      .lte('latitude', location.latitude + 0.0002)
-      .gte('longitude', location.longitude - 0.0002)
-      .lte('longitude', location.longitude + 0.0002)
-      .maybeSingle();
-
-    if (existingByCoords?.id) {
-      return existingByCoords.id;
-    }
-
-    // 3. Insert new location
-    const { data: newLoc, error: locErr } = await supabase
-      .from('locations')
-      .insert({
-        name: location.name || 'Selected Point on Earth',
-        city: location.city || null,
-        country: location.country || 'Earth',
-        venue: location.venue || null,
-        latitude: location.latitude,
-        longitude: location.longitude,
-        place_id: location.place_id || null,
-      })
-      .select('id')
-      .single();
-
-    if (!locErr && newLoc?.id) {
-      return newLoc.id;
-    }
-  }
-
-  return null;
+  return resolveOrCreateLocationId(supabase, location, location_id);
 }
 
 async function resolveCategoryId(supabase: any, category_id?: string | null): Promise<string | null> {
