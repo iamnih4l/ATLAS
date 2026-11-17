@@ -29,7 +29,7 @@ import { ChillCloud, StarSpike } from '@/components/ui/mascot-doodles';
 import { VerifiedStamp, TicketBadge } from '@/components/ui/atlas-illustrations';
 import { Adventure, AdventureStatus, AdventureDestination } from '@/types';
 import { Modal } from '@/components/ui/modal';
-import { isDreamingItem } from '@/lib/wishlist-utils';
+import { isDreamingItem, isDreamingAdventure } from '@/lib/wishlist-utils';
 
 function WishlistContent() {
   const router = useRouter();
@@ -122,13 +122,23 @@ function WishlistContent() {
     }
   }, [highlightedAdvId]);
 
-  // Filtered Adventures
+  // Dreaming Adventures (Automatically routed to Dream List — single underlying record)
+  const dreamAdventures = useMemo(() => {
+    return adventures.filter(isDreamingAdventure);
+  }, [adventures]);
+
+  // Planned / Active / Completed Adventures (Excludes Dreaming ones which live in Dream List)
+  const plannedAdventures = useMemo(() => {
+    return adventures.filter((adv) => !isDreamingAdventure(adv));
+  }, [adventures]);
+
+  // Filtered Planned Adventures
   const filteredAdventures = useMemo(() => {
-    return adventures.filter((adv) => {
+    return plannedAdventures.filter((adv) => {
       if (adventureStatusFilter !== 'all' && adv.status !== adventureStatusFilter) return false;
       return true;
     });
-  }, [adventures, adventureStatusFilter]);
+  }, [plannedAdventures, adventureStatusFilter]);
 
   // Dream List Pins: Strictly Dreaming entries (Derived automatically, never visited)
   const dreamListItems = useMemo(() => {
@@ -198,7 +208,8 @@ function WishlistContent() {
   };
 
   const handleStatusChange = async (advId: string, newStat: AdventureStatus) => {
-    updateAdventure(advId, { status: newStat });
+    const isDreaming = newStat === 'dreaming';
+    updateAdventure(advId, { status: newStat, is_bucket_list: isDreaming });
     try {
       await fetch('/api/adventures', {
         method: 'PATCH',
@@ -319,6 +330,200 @@ function WishlistContent() {
     }
   };
 
+  // Shared card renderer for both Dreaming Adventures (in Dream List) and Planned Adventures
+  const renderAdventureCard = (adv: Adventure) => {
+    const isExpanded = expandedAdvIds.has(adv.id);
+    const stops = adv.destinations || [];
+    const completedStopsCount = stops.filter((s) => s.is_completed).length;
+
+    return (
+      <div
+        key={adv.id}
+        className="bg-white border-2 border-[#171313] rounded-3xl p-5 shadow-pop hover:shadow-pop-lg transition-all flex flex-col justify-between space-y-4 relative"
+      >
+        {/* Washi Tape Accent */}
+        <WashiTape
+          className="absolute -top-2.5 left-10 z-20"
+          rotate="-2deg"
+          color={
+            adv.status === 'completed'
+              ? 'bg-[#F04432]'
+              : adv.status === 'dreaming'
+              ? 'bg-[#FFD45A]'
+              : 'bg-[#6425F5]'
+          }
+        />
+
+        {/* Top Row: Status Dropdown & Budget */}
+        <div>
+          <div className="flex items-center justify-between gap-2 mb-2 pt-1">
+            <select
+              value={adv.status}
+              onChange={(e) => handleStatusChange(adv.id, e.target.value as AdventureStatus)}
+              className={cn(
+                'text-[11px] font-black uppercase tracking-wider px-3 py-1 rounded-full border-2 border-[#171313] shadow-pop-xs focus:outline-none cursor-pointer',
+                adv.status === 'completed'
+                  ? 'bg-[#F04432] text-white'
+                  : adv.status === 'dreaming'
+                  ? 'bg-[#FFD45A] text-[#171313]'
+                  : 'bg-[#6425F5] text-white'
+              )}
+            >
+              <option value="dreaming">✦ Dreaming</option>
+              <option value="planned">🏔️ Planned</option>
+              <option value="upcoming">✈️ Upcoming</option>
+              <option value="in_progress">🧭 In Progress</option>
+              <option value="completed">✓ Completed</option>
+            </select>
+
+            {adv.estimated_budget && (
+              <span className="text-[11px] font-mono font-black text-[#171313] bg-[#FFF4D9] px-2.5 py-0.5 rounded-lg border border-[#171313]">
+                Budget: ~{adv.estimated_budget} {adv.currency || 'USD'}
+              </span>
+            )}
+          </div>
+
+          <h3 className="text-base font-black text-[#171313] line-clamp-1">
+            {adv.title}
+          </h3>
+
+          {adv.description && (
+            <p className="text-xs text-[#171313]/70 font-bold mt-1 line-clamp-2">
+              {adv.description}
+            </p>
+          )}
+        </div>
+
+        {/* Progress Bar & Stops Timeline */}
+        {stops.length > 0 && (
+          <div className="p-3 bg-[#FFF4D9] rounded-2xl border border-[#171313] space-y-2">
+            <div className="flex items-center justify-between text-xs font-black text-[#171313]">
+              <span className="flex items-center gap-1.5">
+                <Route className="w-3.5 h-3.5 text-[#6425F5]" />
+                {adv.status === 'dreaming' ? 'Dream Destinations' : 'Itinerary Stops'} ({stops.length})
+              </span>
+              <span className="text-[11px] text-[#6425F5] font-mono">
+                {completedStopsCount}/{stops.length} Milestones
+              </span>
+            </div>
+
+            <div className="w-full h-2.5 bg-white border border-[#171313] rounded-full overflow-hidden">
+              <div
+                className="h-full bg-emerald-500 transition-all duration-300"
+                style={{
+                  width: `${(completedStopsCount / stops.length) * 100}%`,
+                }}
+              />
+            </div>
+
+            <button
+              onClick={() => toggleExpandAdventure(adv.id)}
+              className="w-full pt-1 text-[11px] font-black text-[#6425F5] hover:text-[#521ec9] flex items-center justify-center gap-1 cursor-pointer"
+            >
+              <span>{isExpanded ? 'Hide Destinations' : 'View All Destinations'}</span>
+              {isExpanded ? (
+                <ChevronUp className="w-3.5 h-3.5" />
+              ) : (
+                <ChevronDown className="w-3.5 h-3.5" />
+              )}
+            </button>
+
+            {isExpanded && (
+              <div className="pt-2 space-y-2 border-t border-[#171313]/10">
+                {stops.map((stop, sIdx) => (
+                  <div
+                    key={stop.id}
+                    className={cn(
+                      'p-2 rounded-xl border text-xs flex items-start justify-between gap-2 transition-all',
+                      stop.is_completed
+                        ? 'bg-emerald-50 border-emerald-500'
+                        : 'bg-white border-[#171313]'
+                    )}
+                  >
+                    <div className="space-y-0.5 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-4 h-4 rounded-full bg-[#6425F5] text-white text-[9px] font-black inline-flex items-center justify-center">
+                          {sIdx + 1}
+                        </span>
+                        <span
+                          className={cn(
+                            'font-black',
+                            stop.is_completed && 'line-through text-slate-500'
+                          )}
+                        >
+                          {stop.name}
+                        </span>
+                      </div>
+
+                      <p className="text-[10px] text-[#171313]/70 font-bold ml-5">
+                        {[stop.city, stop.country].filter(Boolean).join(', ')}
+                        {stop.day_number ? ` • Day ${stop.day_number}` : ''}
+                      </p>
+
+                      {stop.activities && stop.activities.length > 0 && (
+                        <div className="flex flex-wrap gap-1 ml-5 mt-1">
+                          {stop.activities.map((act, aIdx) => (
+                            <span
+                              key={aIdx}
+                              className="text-[9px] font-bold bg-[#FFF4D9] border border-[#171313]/40 px-1.5 py-0.5 rounded text-[#171313]"
+                            >
+                              {act}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <button
+                      onClick={() => handleToggleStopCompleted(adv.id, stop)}
+                      className={cn(
+                        'px-2.5 py-1 rounded-lg text-[10px] font-black border transition-all cursor-pointer shrink-0',
+                        stop.is_completed
+                          ? 'bg-emerald-500 text-white border-emerald-600'
+                          : 'bg-white text-[#171313] border-[#171313] hover:bg-[#FFD45A]'
+                      )}
+                    >
+                      {stop.is_completed ? '✓ Done' : 'Mark Done'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Bottom Action Bar */}
+        <div className="pt-2 border-t-2 border-[#171313]/10 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => handleFlyAdventure(adv)}
+              className="px-3.5 py-1.5 rounded-xl text-xs font-black bg-[#6425F5] hover:bg-[#521ec9] text-white border-2 border-[#171313] shadow-pop-xs transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <Globe2 className="w-3.5 h-3.5 stroke-[2.5]" />
+              <span>View on 3D Globe</span>
+            </button>
+
+            <Link
+              href={`/discover?adventure=${adv.id}`}
+              className="px-3 py-1.5 rounded-xl text-xs font-black bg-[#FFD45A] hover:bg-[#ffc72c] text-[#171313] border-2 border-[#171313] shadow-pop-xs transition-all flex items-center gap-1"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Plan with Orion</span>
+            </Link>
+          </div>
+
+          <button
+            onClick={() => handleDeleteAdv(adv)}
+            className="p-1.5 rounded-xl text-[#171313]/50 hover:text-[#F04432] hover:bg-[#F04432]/10 transition-colors cursor-pointer"
+            title="Delete Adventure"
+          >
+            <Trash2 className="w-4 h-4 stroke-[2.5]" />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="flex-1 overflow-y-auto pt-20 sm:pt-28 pb-28 sm:pb-24 px-3.5 sm:px-6 max-w-7xl mx-auto space-y-6 w-full bg-warm-cream-grid min-h-screen">
       {/* Top Header */}
@@ -383,7 +588,7 @@ function WishlistContent() {
           )}
         >
           <Sparkles className="w-4 h-4 stroke-[2.5]" />
-          <span>✦ Dream List ({wishlistItems.filter(isDreamingItem).length})</span>
+          <span>✦ Dream List ({wishlistItems.filter(isDreamingItem).length + dreamAdventures.length})</span>
         </button>
 
         <button
@@ -396,7 +601,7 @@ function WishlistContent() {
           )}
         >
           <Route className="w-4 h-4 stroke-[2.5]" />
-          <span>Planned Adventures ({adventures.length})</span>
+          <span>Planned Adventures ({plannedAdventures.length})</span>
         </button>
 
         <button
@@ -422,9 +627,8 @@ function WishlistContent() {
           <div className="flex flex-wrap items-center justify-between gap-3 bg-white border-2 border-[#171313] p-3 rounded-2xl shadow-pop">
             <div className="flex items-center gap-2 flex-wrap">
               {[
-                { key: 'all', label: 'All Adventures' },
+                { key: 'all', label: 'All Planned' },
                 { key: 'planned', label: '🏔️ Planned' },
-                { key: 'dreaming', label: '✦ Dreaming' },
                 { key: 'upcoming', label: '✈️ Upcoming' },
                 { key: 'in_progress', label: '🧭 In Progress' },
                 { key: 'completed', label: '✓ Completed' },
@@ -459,9 +663,9 @@ function WishlistContent() {
                 <StarSpike size={42} />
               </div>
 
-              <h3 className="text-lg font-black text-[#171313]">No Adventures Found</h3>
+              <h3 className="text-lg font-black text-[#171313]">No Planned Adventures Yet</h3>
               <p className="text-xs text-[#171313]/70 font-bold max-w-sm mx-auto leading-relaxed">
-                Connect your dreams into sequenced itineraries! Ask Orion AI to generate a multi-stop route or create your own custom adventure.
+                Adventures tagged <strong>✦ Dreaming</strong> automatically live in your <strong>Dream List</strong>. Change any dream adventure to <strong>Planned</strong> or create a new itinerary here!
               </p>
 
               <div className="flex items-center justify-center gap-3 pt-2">
@@ -484,208 +688,14 @@ function WishlistContent() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {filteredAdventures.map((adv) => {
-                const isExpanded = expandedAdvIds.has(adv.id);
-                const stops = adv.destinations || [];
-                const completedStopsCount = stops.filter((s) => s.is_completed).length;
-
-                return (
-                  <div
-                    key={adv.id}
-                    className="bg-white border-2 border-[#171313] rounded-3xl p-5 shadow-pop hover:shadow-pop-lg transition-all flex flex-col justify-between space-y-4 relative"
-                  >
-                    {/* Washi Tape Accent */}
-                    <WashiTape
-                      className="absolute -top-2.5 left-10 z-20"
-                      rotate="-2deg"
-                      color={
-                        adv.status === 'completed'
-                          ? 'bg-[#F04432]'
-                          : adv.status === 'dreaming'
-                          ? 'bg-[#FFD45A]'
-                          : 'bg-[#6425F5]'
-                      }
-                    />
-
-                    {/* Top Row: Status, Budget, & Quick Dropdown */}
-                    <div>
-                      <div className="flex items-center justify-between gap-2 mb-2 pt-1">
-                        <select
-                          value={adv.status}
-                          onChange={(e) => handleStatusChange(adv.id, e.target.value as AdventureStatus)}
-                          className={cn(
-                            'text-[11px] font-black uppercase tracking-wider px-3 py-1 rounded-full border-2 border-[#171313] shadow-pop-xs focus:outline-none cursor-pointer',
-                            adv.status === 'completed'
-                              ? 'bg-[#F04432] text-white'
-                              : adv.status === 'dreaming'
-                              ? 'bg-[#FFD45A] text-[#171313]'
-                              : 'bg-[#6425F5] text-white'
-                          )}
-                        >
-                          <option value="planned">🏔️ Planned</option>
-                          <option value="upcoming">✈️ Upcoming</option>
-                          <option value="in_progress">🧭 In Progress</option>
-                          <option value="dreaming">✦ Dreaming</option>
-                          <option value="completed">✓ Completed</option>
-                        </select>
-
-                        {adv.estimated_budget && (
-                          <span className="text-[11px] font-mono font-black text-[#171313] bg-[#FFF4D9] px-2.5 py-0.5 rounded-lg border border-[#171313]">
-                            Budget: ~{adv.estimated_budget} {adv.currency || 'USD'}
-                          </span>
-                        )}
-                      </div>
-
-                      <h3 className="text-base font-black text-[#171313] line-clamp-1">
-                        {adv.title}
-                      </h3>
-
-                      {adv.description && (
-                        <p className="text-xs text-[#171313]/70 font-bold mt-1 line-clamp-2">
-                          {adv.description}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Progress Bar of Completed Stops */}
-                    {stops.length > 0 && (
-                      <div className="p-3 bg-[#FFF4D9] rounded-2xl border border-[#171313] space-y-2">
-                        <div className="flex items-center justify-between text-xs font-black text-[#171313]">
-                          <span className="flex items-center gap-1.5">
-                            <Route className="w-3.5 h-3.5 text-[#6425F5]" />
-                            Itinerary Stops ({stops.length})
-                          </span>
-                          <span className="text-[11px] text-[#6425F5] font-mono">
-                            {completedStopsCount}/{stops.length} Milestones
-                          </span>
-                        </div>
-
-                        {/* Visual Progress Bar */}
-                        <div className="w-full h-2.5 bg-white border border-[#171313] rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-emerald-500 transition-all duration-300"
-                            style={{
-                              width: `${(completedStopsCount / stops.length) * 100}%`,
-                            }}
-                          />
-                        </div>
-
-                        {/* Stops preview / accordion toggle */}
-                        <button
-                          onClick={() => toggleExpandAdventure(adv.id)}
-                          className="w-full pt-1 text-[11px] font-black text-[#6425F5] hover:text-[#521ec9] flex items-center justify-center gap-1 cursor-pointer"
-                        >
-                          <span>{isExpanded ? 'Hide Itinerary Details' : 'View Full Itinerary'}</span>
-                          {isExpanded ? (
-                            <ChevronUp className="w-3.5 h-3.5" />
-                          ) : (
-                            <ChevronDown className="w-3.5 h-3.5" />
-                          )}
-                        </button>
-
-                        {/* Expanded Stops Timeline */}
-                        {isExpanded && (
-                          <div className="pt-2 space-y-2 border-t border-[#171313]/10">
-                            {stops.map((stop, sIdx) => (
-                              <div
-                                key={stop.id}
-                                className={cn(
-                                  'p-2 rounded-xl border text-xs flex items-start justify-between gap-2 transition-all',
-                                  stop.is_completed
-                                    ? 'bg-emerald-50 border-emerald-500'
-                                    : 'bg-white border-[#171313]'
-                                )}
-                              >
-                                <div className="space-y-0.5 flex-1">
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="w-4 h-4 rounded-full bg-[#6425F5] text-white text-[9px] font-black inline-flex items-center justify-center">
-                                      {sIdx + 1}
-                                    </span>
-                                    <span
-                                      className={cn(
-                                        'font-black',
-                                        stop.is_completed && 'line-through text-slate-500'
-                                      )}
-                                    >
-                                      {stop.name}
-                                    </span>
-                                  </div>
-
-                                  <p className="text-[10px] text-[#171313]/70 font-bold ml-5">
-                                    {[stop.city, stop.country].filter(Boolean).join(', ')}
-                                    {stop.day_number ? ` • Day ${stop.day_number}` : ''}
-                                  </p>
-
-                                  {stop.activities && stop.activities.length > 0 && (
-                                    <div className="flex flex-wrap gap-1 ml-5 mt-1">
-                                      {stop.activities.map((act, aIdx) => (
-                                        <span
-                                          key={aIdx}
-                                          className="text-[9px] font-bold bg-[#FFF4D9] border border-[#171313]/40 px-1.5 py-0.5 rounded text-[#171313]"
-                                        >
-                                          {act}
-                                        </span>
-                                      ))}
-                                    </div>
-                                  )}
-                                </div>
-
-                                <button
-                                  onClick={() => handleToggleStopCompleted(adv.id, stop)}
-                                  className={cn(
-                                    'px-2.5 py-1 rounded-lg text-[10px] font-black border transition-all cursor-pointer shrink-0',
-                                    stop.is_completed
-                                      ? 'bg-emerald-500 text-white border-emerald-600'
-                                      : 'bg-white text-[#171313] border-[#171313] hover:bg-[#FFD45A]'
-                                  )}
-                                >
-                                  {stop.is_completed ? '✓ Done' : 'Mark Done'}
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Bottom Action Bar */}
-                    <div className="pt-2 border-t-2 border-[#171313]/10 flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleFlyAdventure(adv)}
-                          className="px-3.5 py-1.5 rounded-xl text-xs font-black bg-[#6425F5] hover:bg-[#521ec9] text-white border-2 border-[#171313] shadow-pop-xs transition-all flex items-center gap-1.5 cursor-pointer"
-                        >
-                          <Globe2 className="w-3.5 h-3.5 stroke-[2.5]" />
-                          <span>View on 3D Globe</span>
-                        </button>
-
-                        <Link
-                          href={`/discover?adventure=${adv.id}`}
-                          className="px-3 py-1.5 rounded-xl text-xs font-black bg-[#FFD45A] hover:bg-[#ffc72c] text-[#171313] border-2 border-[#171313] shadow-pop-xs transition-all flex items-center gap-1"
-                        >
-                          <Sparkles className="w-3.5 h-3.5" />
-                          <span>Plan with Orion</span>
-                        </Link>
-                      </div>
-
-                      <button
-                        onClick={() => handleDeleteAdv(adv)}
-                        className="p-1.5 rounded-xl text-[#171313]/50 hover:text-[#F04432] hover:bg-[#F04432]/10 transition-colors cursor-pointer"
-                        title="Delete Adventure"
-                      >
-                        <Trash2 className="w-4 h-4 stroke-[2.5]" />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
+              {filteredAdventures.map((adv) => renderAdventureCard(adv))}
             </div>
           )}
         </div>
       )}
 
       {/* ========================================================================= */}
-      {/* BUCKET LIST / DREAM LIST TAB CONTENT (DERIVED FROM WISHLIST DREAMING PINS) */}
+      {/* BUCKET LIST / DREAM LIST TAB CONTENT (WISHLIST PINS + DREAMING ADVENTURES) */}
       {/* ========================================================================= */}
       {activeTab === 'bucket_list' && (
         <div className="space-y-6">
@@ -698,7 +708,7 @@ function WishlistContent() {
               <div>
                 <h2 className="text-sm font-black text-[#171313]">Automated Dream List</h2>
                 <p className="text-xs text-[#171313]/70 font-bold">
-                  All wishlist pins marked or tagged with <strong>Dreaming</strong> automatically appear here. When marked as Visited, they graduate to your Memories!
+                  All wishlist pins and adventures marked or tagged <strong>✦ Dreaming</strong> automatically appear here. Change status to <strong>Planned</strong> or <strong>Visited</strong> anytime to move them!
                 </p>
               </div>
             </div>
@@ -728,8 +738,8 @@ function WishlistContent() {
             </div>
           </div>
 
-          {/* Dream Items Grid */}
-          {dreamListItems.length === 0 ? (
+          {/* Dreaming Adventures + Dream List Pins */}
+          {dreamListItems.length === 0 && dreamAdventures.length === 0 ? (
             <div className="text-center py-14 bg-white border-2 border-[#171313] rounded-3xl p-8 space-y-4 shadow-pop-lg max-w-xl mx-auto my-8 relative overflow-hidden">
               <div className="flex items-center justify-center gap-3 pt-4">
                 <ChillCloud size={46} />
@@ -741,7 +751,7 @@ function WishlistContent() {
 
               <h3 className="text-lg font-black text-[#171313]">No Dream List Pins Yet</h3>
               <p className="text-xs text-[#171313]/70 font-bold max-w-sm mx-auto leading-relaxed">
-                Add a destination and choose <strong>✦ Dreaming</strong>, or mark an existing wishlist pin as Dreaming. It will instantly show up in this view!
+                Add a destination or adventure with <strong>✦ Dreaming</strong>, or ask Orion AI for bucket list ideas. It will instantly show up in this view!
               </p>
               <button
                 onClick={() => {
@@ -755,8 +765,35 @@ function WishlistContent() {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {dreamListItems.map((item, idx) => {
+            <div className="space-y-8">
+              {/* Dreaming Adventures (Automatically routed from Adventures with status === 'dreaming') */}
+              {dreamAdventures.length > 0 && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-[#6425F5] stroke-[2.5]" />
+                    <h3 className="text-sm font-black text-[#171313] uppercase tracking-wider">
+                      Dreaming Journeys & Collections ({dreamAdventures.length})
+                    </h3>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {dreamAdventures.map((adv) => renderAdventureCard(adv))}
+                  </div>
+                </div>
+              )}
+
+              {/* Individual Dream List Wishlist Pins */}
+              {dreamListItems.length > 0 && (
+                <div className="space-y-4">
+                  {dreamAdventures.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-[#F04432] stroke-[2.5]" />
+                      <h3 className="text-sm font-black text-[#171313] uppercase tracking-wider">
+                        Dream Destinations & Activities ({dreamListItems.length})
+                      </h3>
+                    </div>
+                  )}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {dreamListItems.map((item, idx) => {
                 const isHigh = item.priority === 'high';
                 const isLow = item.priority === 'low';
 
@@ -874,6 +911,9 @@ function WishlistContent() {
                   </div>
                 );
               })}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

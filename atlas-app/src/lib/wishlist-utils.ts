@@ -1,4 +1,16 @@
-import { WishlistItem } from '@/types';
+import { WishlistItem, Adventure } from '@/types';
+
+/**
+ * Determines whether a Planned Adventure carries the "Dreaming" status/tag
+ * and should therefore automatically appear in the Dream List (and not in Planned Adventures).
+ */
+export function isDreamingAdventure(adventure: Adventure): boolean {
+  if (!adventure) return false;
+  if (adventure.status === 'completed' || adventure.status === 'archived') {
+    return false;
+  }
+  return adventure.status === 'dreaming' || Boolean(adventure.is_bucket_list);
+}
 
 /**
  * Determines whether a wishlist item belongs in the Dream List view.

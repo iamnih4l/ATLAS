@@ -22,7 +22,7 @@ import {
 import { useAtlasStore } from '@/lib/store';
 import { useAuth } from '@/hooks/use-auth';
 import { triggerAtlasSync } from '@/hooks/use-data-sync';
-import { isDreamingItem } from '@/lib/wishlist-utils';
+import { isDreamingItem, isDreamingAdventure } from '@/lib/wishlist-utils';
 import { cn } from '@/lib/utils';
 
 export function MobileBottomNav() {
@@ -63,10 +63,12 @@ export function MobileBottomNav() {
     }
   };
 
-  // Count dreaming bucket list items
-  const dreamCount = wishlistItems.filter(isDreamingItem).length;
+  // Count dreaming bucket list items (wishlist pins + dreaming adventures)
+  const dreamCount =
+    wishlistItems.filter(isDreamingItem).length +
+    (adventures || []).filter(isDreamingAdventure).length;
   const plannedCount =
-    (adventures?.length || 0) +
+    (adventures || []).filter((a) => !isDreamingAdventure(a)).length +
     wishlistItems.filter((w) => !w.is_completed && !isDreamingItem(w)).length;
 
   const mainNavItems = [
