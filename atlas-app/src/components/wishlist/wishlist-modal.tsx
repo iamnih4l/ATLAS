@@ -271,7 +271,7 @@ export function WishlistModal() {
         estimated_budget: budgetNum,
         notes,
         source: source || (status === 'dreaming' ? 'Dream List Destination' : 'Personal Bucket List'),
-        reference_image_url: referenceImageUrl || 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80',
+        reference_image_url: referenceImageUrl || null,
         is_completed: isCompleted,
         completed_experience_id: null,
         created_at: new Date().toISOString(),

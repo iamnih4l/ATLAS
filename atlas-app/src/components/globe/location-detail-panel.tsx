@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { WashiTape, PassportStamp } from '@/components/ui/doodles';
 import { PixelCamera } from '@/components/ui/pixel-stickers';
+import { LocationPhoto, isStaticPlaceholderImage } from '@/components/ui/location-photo';
 
 export function LocationDetailPanel() {
   const {
@@ -58,13 +59,25 @@ export function LocationDetailPanel() {
     .find(Boolean);
 
   const primaryPhoto = locationExperiences.find(
-    (e) => e.cover_image_url || e.media?.[0]?.file_url
+    (e) =>
+      (!isStaticPlaceholderImage(e.cover_image_url) && e.cover_image_url) ||
+      e.media?.[0]?.file_url
   );
-  const heroImage =
+  const wishlistCustomPhoto = locationWishlist.find(
+    (w) => !isStaticPlaceholderImage(w.reference_image_url) && w.reference_image_url
+  )?.reference_image_url;
+
+  const customHeroImage =
     primaryPhoto?.cover_image_url ||
     primaryPhoto?.media?.[0]?.file_url ||
-    locationWishlist[0]?.reference_image_url ||
-    'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80';
+    wishlistCustomPhoto ||
+    null;
+
+  const photoSearchName =
+    selectedLocation.name ||
+    matchedAdventureInfo?.destination?.name ||
+    locationWishlist[0]?.title ||
+    locationExperiences[0]?.title;
 
   const handleOpenExperience = (exp: any) => {
     setEditingExperience(exp);
@@ -107,65 +120,49 @@ export function LocationDetailPanel() {
 
       {/* Main Folder Envelope Body */}
       <div className="flex-1 bg-[#FFF4D9] border-2 border-[#171313] shadow-pop-lg rounded-3xl rounded-tl-none flex flex-col overflow-hidden">
-        {/* Hero Visual Polaroid Frame (if photo exists) */}
-        {heroImage ? (
-          <div className="p-3 pb-0">
-            <div className="relative h-44 w-full bg-[#171313] rounded-2xl overflow-hidden border-2 border-[#171313] shadow-pop-sm">
-              {/* Washi Tape Strip */}
-              <WashiTape className="absolute -top-1 left-6 z-20" rotate="-3deg" color="bg-[#FFD45A]" />
+        {/* Hero Visual Polaroid Frame — On-demand real location photograph */}
+        <div className="p-3 pb-0">
+          <div className="relative h-44 w-full bg-[#171313] rounded-2xl overflow-hidden border-2 border-[#171313] shadow-pop-sm">
+            {/* Washi Tape Strip */}
+            <WashiTape className="absolute -top-1 left-6 z-20" rotate="-3deg" color="bg-[#FFD45A]" />
 
-              {/* Rubber Passport Stamp */}
-              <div className="absolute top-2 right-4 pointer-events-none z-20">
-                <PassportStamp
-                  label="VERIFIED"
-                  sublabel="ATLAS"
-                  rotate="-8deg"
-                  className="scale-75 origin-top-right bg-white/95 border-2 border-[#F04432] text-[#F04432] shadow-pop-sm"
-                />
-              </div>
-
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={heroImage}
-                alt={selectedLocation.name}
-                className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
+            {/* Rubber Passport Stamp */}
+            <div className="absolute top-2 right-4 pointer-events-none z-20">
+              <PassportStamp
+                label="VERIFIED"
+                sublabel="ATLAS"
+                rotate="-8deg"
+                className="scale-75 origin-top-right bg-white/95 border-2 border-[#F04432] text-[#F04432] shadow-pop-sm"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#171313]/90 via-[#171313]/25 to-transparent" />
-
-              <div className="absolute bottom-3 left-3 right-3">
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-[#F04432] text-white border border-[#171313] mb-1 shadow-xs">
-                  <MapPin className="w-2.5 h-2.5" /> Landmark
-                </span>
-                <h2 className="text-base font-black text-white leading-tight drop-shadow-sm truncate font-serif">
-                  {selectedLocation.name}
-                </h2>
-                <p className="text-xs text-white/90 truncate mt-0.5 font-bold">
-                  {[selectedLocation.venue, selectedLocation.city, selectedLocation.country]
-                    .filter(Boolean)
-                    .join(' • ')}
-                </p>
-              </div>
             </div>
-          </div>
-        ) : (
-          /* Minimalist Header with Washi Tape */
-          <div className="relative p-4 border-b-2 border-[#171313] bg-[#FFD45A]/30">
-            <WashiTape className="absolute -top-1 left-8 z-10" rotate="2deg" color="bg-[#FFD45A]" />
-            <div className="pr-2 pt-1">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-[#F04432] text-white border-2 border-[#171313] mb-1.5 shadow-pop-sm">
-                <MapPin className="w-3 h-3 text-white stroke-[2.5]" /> Geographic Pin
-              </div>
-              <h2 className="text-base font-black text-[#171313] leading-snug font-serif">
+
+            <LocationPhoto
+              src={customHeroImage}
+              name={photoSearchName}
+              city={selectedLocation.city}
+              country={selectedLocation.country}
+              latitude={selectedLocation.latitude}
+              longitude={selectedLocation.longitude}
+              alt={selectedLocation.name}
+              className="transition-transform duration-700 hover:scale-105"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#171313]/90 via-[#171313]/25 to-transparent pointer-events-none" />
+
+            <div className="absolute bottom-3 left-3 right-3">
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-[#F04432] text-white border border-[#171313] mb-1 shadow-xs">
+                <MapPin className="w-2.5 h-2.5" /> Landmark
+              </span>
+              <h2 className="text-base font-black text-white leading-tight drop-shadow-sm truncate font-serif">
                 {selectedLocation.name}
               </h2>
-              <p className="text-xs text-[#171313]/70 mt-0.5 font-bold">
+              <p className="text-xs text-white/90 truncate mt-0.5 font-bold">
                 {[selectedLocation.venue, selectedLocation.city, selectedLocation.country]
                   .filter(Boolean)
                   .join(' • ')}
               </p>
             </div>
           </div>
-        )}
+        </div>
 
         {/* Lat / Long Coordinate Pill Strip */}
         <div className="px-4 py-2 bg-white border-b-2 border-[#171313] flex items-center justify-between text-[11px] font-mono text-[#171313] font-bold">

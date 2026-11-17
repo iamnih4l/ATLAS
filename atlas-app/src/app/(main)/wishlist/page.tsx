@@ -29,6 +29,7 @@ import { ChillCloud, StarSpike } from '@/components/ui/mascot-doodles';
 import { VerifiedStamp, TicketBadge } from '@/components/ui/atlas-illustrations';
 import { Adventure, AdventureStatus, AdventureDestination } from '@/types';
 import { Modal } from '@/components/ui/modal';
+import { LocationPhoto } from '@/components/ui/location-photo';
 import { isDreamingItem, isDreamingAdventure } from '@/lib/wishlist-utils';
 
 function WishlistContent() {
@@ -814,14 +815,15 @@ function WishlistContent() {
                     <div>
                       {/* Reference Image */}
                       <div className="aspect-[16/10] relative rounded-2xl overflow-hidden bg-[#171313] border-2 border-[#171313] shadow-pop-sm">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={
-                            item.reference_image_url ||
-                            'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80'
-                          }
+                        <LocationPhoto
+                          src={item.reference_image_url}
+                          name={item.location?.name || item.title}
+                          city={item.location?.city}
+                          country={item.location?.country}
+                          latitude={item.location?.latitude}
+                          longitude={item.location?.longitude}
                           alt={item.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          className="group-hover:scale-105 transition-transform duration-500"
                         />
                         <div className="absolute top-3 left-3 flex items-center gap-1.5 flex-wrap">
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-[#6425F5] text-white border border-[#171313] shadow-pop-sm flex items-center gap-1">
@@ -1012,14 +1014,15 @@ function WishlistContent() {
                     <div>
                       {/* Reference Image */}
                       <div className="aspect-[16/10] relative rounded-2xl overflow-hidden bg-[#171313] border-2 border-[#171313] shadow-pop-sm">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={
-                            item.reference_image_url ||
-                            'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80'
-                          }
+                        <LocationPhoto
+                          src={item.reference_image_url}
+                          name={item.location?.name || item.title}
+                          city={item.location?.city}
+                          country={item.location?.country}
+                          latitude={item.location?.latitude}
+                          longitude={item.location?.longitude}
                           alt={item.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          className="group-hover:scale-105 transition-transform duration-500"
                         />
                         <div className="absolute top-3 left-3 flex items-center gap-1.5 flex-wrap">
                           <span

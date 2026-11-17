@@ -7,6 +7,7 @@ import { Location } from '@/types';
 import { reverseGeocode } from '@/lib/geocoding';
 import { Plus, BookmarkCheck, X, MapPin, Sparkles, Navigation, Globe as GlobeIcon, Compass } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { LocationPhoto } from '@/components/ui/location-photo';
 
 // ============================================================================
 // 1. GEOMETRY & COORDINATE HELPERS
@@ -898,16 +899,17 @@ export default function InteractiveGlobe() {
           className="fixed pointer-events-none z-40 bg-[#FFF4D9] border-2 border-[#171313] rounded-2xl p-3 shadow-pop-lg transform -translate-x-1/2 -translate-y-24 transition-all duration-75 max-w-[250px] select-none"
           style={{ left: mousePos.x, top: mousePos.y }}
         >
-          {hoveredExp?.photo && (
-            <div className="w-full h-24 rounded-xl overflow-hidden mb-2 bg-[#171313] border-2 border-[#171313]">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={hoveredExp.photo}
-                alt={hoveredLocation.name}
-                className="w-full h-full object-cover"
-              />
-            </div>
-          )}
+          <div className="w-full h-24 rounded-xl overflow-hidden mb-2 bg-[#171313] border-2 border-[#171313]">
+            <LocationPhoto
+              src={hoveredExp?.photo}
+              name={hoveredLocation.name}
+              city={hoveredLocation.city}
+              country={hoveredLocation.country}
+              latitude={hoveredLocation.latitude}
+              longitude={hoveredLocation.longitude}
+              alt={hoveredLocation.name}
+            />
+          </div>
           <div className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-[#F04432] border border-[#171313] shrink-0" />
             <p className="text-xs font-black text-[#171313] truncate font-sans">

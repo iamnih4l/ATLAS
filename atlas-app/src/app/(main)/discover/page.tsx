@@ -276,9 +276,7 @@ function DiscoverContent() {
       estimated_budget: null,
       notes: params.notes || null,
       source: params.source,
-      reference_image_url:
-        params.imageUrl ||
-        'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80',
+      reference_image_url: params.imageUrl || null,
       is_completed: false,
       completed_experience_id: null,
       created_at: now,
