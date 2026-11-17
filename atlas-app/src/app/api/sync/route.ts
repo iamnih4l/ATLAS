@@ -119,6 +119,19 @@ export async function GET(request: Request) {
       });
     });
 
+    // 5. Fetch Preferences & Profile
+    const { data: preferences } = await supabase
+      .from('user_preferences')
+      .select('*')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('full_name, email, avatar_url')
+      .eq('id', user.id)
+      .maybeSingle();
+
     return NextResponse.json({
       success: true,
       experiences: experiences || [],
@@ -128,6 +141,14 @@ export async function GET(request: Request) {
       })),
       adventures: adventures || [],
       locations: Array.from(locationsMap.values()),
+      preferences: preferences || null,
+      profile: profile
+        ? {
+            fullName: profile.full_name,
+            email: profile.email,
+            avatarUrl: profile.avatar_url,
+          }
+        : null,
     });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Server error' }, { status: 500 });
@@ -254,6 +275,18 @@ export async function POST(request: Request) {
       if (w.location) locationsMap.set(w.location.id, w.location);
     });
 
+    const { data: preferences } = await supabase
+      .from('user_preferences')
+      .select('*')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('full_name, email, avatar_url')
+      .eq('id', user.id)
+      .maybeSingle();
+
     return NextResponse.json({
       success: true,
       migrated: true,
@@ -264,6 +297,14 @@ export async function POST(request: Request) {
       })),
       adventures: adventures || [],
       locations: Array.from(locationsMap.values()),
+      preferences: preferences || null,
+      profile: profile
+        ? {
+            fullName: profile.full_name,
+            email: profile.email,
+            avatarUrl: profile.avatar_url,
+          }
+        : null,
     });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Server error' }, { status: 500 });

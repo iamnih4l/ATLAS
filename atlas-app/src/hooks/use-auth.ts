@@ -34,6 +34,7 @@ interface AuthState {
   resendVerification: (email: string) => Promise<AuthResponse>;
   resetPassword: (email: string) => Promise<AuthResponse>;
   initAuth: () => Promise<void>;
+  updateUser: (updates: Partial<AuthUser>) => void;
 }
 
 export const useAuth = create<AuthState>((set, get) => ({
@@ -42,6 +43,10 @@ export const useAuth = create<AuthState>((set, get) => ({
   isLoading: false,
   isInitialized: false,
   authError: null,
+  updateUser: (updates) =>
+    set((state) => ({
+      user: state.user ? { ...state.user, ...updates } : null,
+    })),
 
   signIn: async (email: string, pass: string): Promise<AuthResponse> => {
     set({ isLoading: true, authError: null });

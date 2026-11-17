@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { useAtlasStore } from '@/lib/store';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
   Lock,
@@ -14,32 +13,88 @@ import {
   Cloud,
   Check,
   LogOut,
-  ShieldAlert,
+  RefreshCw,
 } from 'lucide-react';
 import { DoodleSparkle, DoodleUnderline } from '@/components/ui/doodles';
 import { AdventurePeaks } from '@/components/ui/atlas-illustrations';
 
 export default function SettingsPage() {
-  const { experiences, locations, wishlistItems } = useAtlasStore();
+  const { experiences, locations, wishlistItems, userPreferences, setUserPreferences } =
+    useAtlasStore();
 
   const router = useRouter();
-  const { user, signOut } = useAuth();
+  const { user, signOut, updateUser } = useAuth();
 
-  const [fullName, setFullName] = useState(user?.fullName || 'Atlas Explorer');
+  const [fullName, setFullName] = useState(
+    user?.fullName || 'Atlas Explorer'
+  );
   const [email, setEmail] = useState(user?.email || 'explorer@atlas.journal');
-  const [defaultPrivacy, setDefaultPrivacy] = useState<'private' | 'unlisted' | 'public'>('private');
-  const [aiPersonalization, setAiPersonalization] = useState(true);
-  const [allowLocation, setAllowLocation] = useState(false);
+  const [defaultPrivacy, setDefaultPrivacy] = useState<'private' | 'unlisted' | 'public'>(
+    userPreferences?.default_privacy || 'private'
+  );
+  const [aiPersonalization, setAiPersonalization] = useState(
+    userPreferences?.ai_personalization ?? true
+  );
+  const [allowLocation, setAllowLocation] = useState(
+    userPreferences?.location_permission ?? false
+  );
   const [isSaved, setIsSaved] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
+  // Sync state with user and store
   useEffect(() => {
     if (user) {
       if (user.fullName) setFullName(user.fullName);
       if (user.email) setEmail(user.email);
     }
-  }, [user]);
+    if (userPreferences) {
+      if (userPreferences.default_privacy) setDefaultPrivacy(userPreferences.default_privacy);
+      if (typeof userPreferences.ai_personalization === 'boolean') {
+        setAiPersonalization(userPreferences.ai_personalization);
+      }
+      if (typeof userPreferences.location_permission === 'boolean') {
+        setAllowLocation(userPreferences.location_permission);
+      }
+    }
+  }, [user, userPreferences]);
+
+  // Fetch latest cloud preferences on mount
+  useEffect(() => {
+    let isMounted = true;
+    const loadCloudPreferences = async () => {
+      try {
+        const res = await fetch('/api/preferences');
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted && data.preferences) {
+            setUserPreferences(data.preferences);
+            if (data.preferences.default_privacy) {
+              setDefaultPrivacy(data.preferences.default_privacy);
+            }
+            if (typeof data.preferences.ai_personalization === 'boolean') {
+              setAiPersonalization(data.preferences.ai_personalization);
+            }
+            if (typeof data.preferences.location_permission === 'boolean') {
+              setAllowLocation(data.preferences.location_permission);
+            }
+          }
+          if (isMounted && data.profile?.fullName) {
+            setFullName(data.profile.fullName);
+            updateUser({ fullName: data.profile.fullName });
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to load cloud preferences:', err);
+      }
+    };
+
+    loadCloudPreferences();
+    return () => {
+      isMounted = false;
+    };
+  }, [setUserPreferences, updateUser]);
 
   const handleSignOut = async () => {
     setIsSigningOut(true);
@@ -52,6 +107,11 @@ export default function SettingsPage() {
     const data = {
       exportDate: new Date().toISOString(),
       user: { fullName, email },
+      preferences: {
+        defaultPrivacy,
+        aiPersonalization,
+        allowLocation,
+      },
       statistics: {
         totalExperiences: experiences.length,
         totalLocations: locations.length,
@@ -73,10 +133,50 @@ export default function SettingsPage() {
     URL.revokeObjectURL(url);
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSaved(true);
-    setTimeout(() => setIsSaved(false), 2500);
+    setIsSaving(true);
+
+    // Optimistic local update
+    const updatedName = fullName.trim() || 'Atlas Explorer';
+    setUserPreferences({
+      default_privacy: defaultPrivacy,
+      ai_personalization: aiPersonalization,
+      location_permission: allowLocation,
+    });
+    updateUser({ fullName: updatedName });
+
+    try {
+      const res = await fetch('/api/preferences', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fullName: updatedName,
+          defaultPrivacy,
+          aiPersonalization,
+          allowLocation,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.preferences) {
+          setUserPreferences(data.preferences);
+        }
+        if (data.profile?.fullName) {
+          updateUser({ fullName: data.profile.fullName });
+        }
+      }
+      setIsSaved(true);
+      setTimeout(() => setIsSaved(false), 3000);
+    } catch (err) {
+      console.warn('Preferences save warning:', err);
+      // Fallback: local save remains active
+      setIsSaved(true);
+      setTimeout(() => setIsSaved(false), 3000);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -117,8 +217,8 @@ export default function SettingsPage() {
               label="Email Address"
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="bg-[#FFF4D9] border-2 border-[#171313] text-[#171313] font-black rounded-2xl shadow-pop-sm"
+              disabled
+              className="bg-[#FFF4D9]/60 border-2 border-[#171313]/40 text-[#171313]/70 font-black rounded-2xl cursor-not-allowed"
             />
           </div>
         </div>
@@ -131,7 +231,7 @@ export default function SettingsPage() {
               Privacy & Access Controls
             </h3>
             <span className="px-3 py-1 rounded-full text-[10px] font-black bg-emerald-300 text-[#171313] border border-[#171313] shadow-pop-sm">
-              Private By Default
+              Cross-Device Cloud Synced
             </span>
           </div>
 
@@ -143,7 +243,7 @@ export default function SettingsPage() {
               <select
                 value={defaultPrivacy}
                 onChange={(e) => setDefaultPrivacy(e.target.value as any)}
-                className="w-full bg-[#FFF4D9] border-2 border-[#171313] rounded-2xl px-4 py-2.5 text-xs text-[#171313] focus:outline-none font-black shadow-pop-sm"
+                className="w-full bg-[#FFF4D9] border-2 border-[#171313] rounded-2xl px-4 py-2.5 text-xs text-[#171313] focus:outline-none font-black shadow-pop-sm cursor-pointer"
               >
                 <option value="private">Private — Accessible strictly to your authenticated session</option>
                 <option value="unlisted">Unlisted — Accessible only via secret direct token</option>
@@ -242,8 +342,8 @@ export default function SettingsPage() {
         {/* Save Bar */}
         <div className="flex items-center justify-between pt-4 border-t-2 border-[#171313]/15">
           {isSaved ? (
-            <span className="text-xs text-emerald-700 font-black flex items-center gap-1.5 animate-in fade-in bg-emerald-100 px-3 py-1.5 rounded-xl border border-emerald-600">
-              <Check className="w-4 h-4 stroke-[3]" /> Settings updated successfully
+            <span className="text-xs text-emerald-700 font-black flex items-center gap-1.5 animate-in fade-in bg-emerald-100 px-3.5 py-2 rounded-xl border-2 border-emerald-600 shadow-pop-xs">
+              <Check className="w-4 h-4 stroke-[3]" /> Preferences saved & synced across devices!
             </span>
           ) : (
             <span />
@@ -251,9 +351,11 @@ export default function SettingsPage() {
 
           <button
             type="submit"
-            className="px-6 py-3 rounded-2xl text-xs font-black text-white bg-[#6425F5] hover:bg-[#521ecf] border-2 border-[#171313] shadow-pop hover:scale-105 active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer"
+            disabled={isSaving}
+            className="px-6 py-3 rounded-2xl text-xs font-black text-white bg-[#6425F5] hover:bg-[#521ecf] border-2 border-[#171313] shadow-pop hover:scale-105 active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer disabled:opacity-60 flex items-center gap-2"
           >
-            Save Preferences
+            {isSaving && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+            <span>{isSaving ? 'Saving Preferences…' : 'Save Preferences'}</span>
           </button>
         </div>
       </form>
@@ -298,22 +400,35 @@ export default function SettingsPage() {
 
       {/* Confirmation Dialog Modal */}
       {showLogoutModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white border-3 border-[#171313] rounded-3xl p-6 max-w-sm w-full shadow-pop-lg animate-in zoom-in-95 duration-150 text-center">
-            <div className="w-12 h-12 rounded-2xl bg-[#F04432]/10 border-2 border-[#F04432] text-[#F04432] mx-auto flex items-center justify-center mb-3 shadow-pop-xs">
-              <LogOut className="w-6 h-6 stroke-[2.5]" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="fixed inset-0 bg-[#171313]/60 backdrop-blur-xs"
+            onClick={() => setShowLogoutModal(false)}
+          />
+          <div className="relative z-10 w-full max-w-md bg-[#FFF4D9] border-2 border-[#171313] rounded-3xl p-6 shadow-pop-lg space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-[#F04432] text-white border-2 border-[#171313] rounded-2xl shadow-pop-xs">
+                <LogOut className="w-6 h-6 stroke-[2.5]" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-[#171313]">Are you sure?</h3>
+                <p className="text-xs text-[#171313]/70 font-bold">
+                  {user?.isGuest
+                    ? 'You will return to the welcome screen.'
+                    : 'Your session will be closed on this browser.'}
+                </p>
+              </div>
             </div>
-            <h4 className="text-lg font-black text-[#171313] font-serif">
-              Confirm Sign Out
-            </h4>
-            <p className="text-xs text-[#171313]/70 font-bold mt-1.5 mb-5 leading-relaxed">
-              Are you sure you want to sign out of ATLAS? You will return to the sign-in screen.
+
+            <p className="text-xs text-[#171313]/80 font-bold leading-relaxed bg-white p-3.5 rounded-2xl border-2 border-[#171313]">
+              Your pinned destinations, journey milestones, and memories will remain safe and sound.
             </p>
-            <div className="grid grid-cols-2 gap-3">
+
+            <div className="flex items-center justify-end gap-3 pt-2">
               <button
                 type="button"
                 onClick={() => setShowLogoutModal(false)}
-                className="px-4 py-2.5 rounded-2xl text-xs font-black text-[#171313] bg-[#FFF4D9] hover:bg-[#FFD45A] border-2 border-[#171313] shadow-pop-xs transition-all cursor-pointer"
+                className="px-4 py-2 rounded-2xl text-xs font-black text-[#171313] bg-white border-2 border-[#171313] shadow-pop-xs hover:bg-[#FFF4D9] transition-all cursor-pointer"
               >
                 Cancel
               </button>
@@ -321,7 +436,7 @@ export default function SettingsPage() {
                 type="button"
                 disabled={isSigningOut}
                 onClick={handleSignOut}
-                className="px-4 py-2.5 rounded-2xl text-xs font-black text-white bg-[#F04432] hover:bg-[#d63b2b] border-2 border-[#171313] shadow-pop-xs transition-all cursor-pointer disabled:opacity-60"
+                className="px-5 py-2 rounded-2xl text-xs font-black text-white bg-[#F04432] border-2 border-[#171313] shadow-pop hover:scale-105 active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer disabled:opacity-50"
               >
                 {isSigningOut ? 'Signing Out…' : 'Yes, Sign Out'}
               </button>

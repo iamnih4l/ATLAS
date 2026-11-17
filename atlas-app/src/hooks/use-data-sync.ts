@@ -14,10 +14,12 @@ export function useDataSync() {
     experiences,
     wishlistItems,
     adventures,
+    userPreferences,
     setExperiences,
     setWishlistItems,
     setLocations,
     setAdventures,
+    setUserPreferences,
   } = useAtlasStore();
 
   const syncData = useCallback(async (forceMigration = false) => {
@@ -54,6 +56,10 @@ export function useDataSync() {
             setWishlistItems(data.wishlistItems || []);
             setLocations(data.locations || []);
             if (data.adventures) setAdventures(data.adventures);
+            if (data.preferences) setUserPreferences(data.preferences);
+            if (data.profile?.fullName) {
+              useAuth.getState().updateUser({ fullName: data.profile.fullName });
+            }
             hasMigratedLocalRef.current = true;
           }
         }
@@ -67,6 +73,10 @@ export function useDataSync() {
             setWishlistItems(data.wishlistItems || []);
             setLocations(data.locations || []);
             if (data.adventures) setAdventures(data.adventures);
+            if (data.preferences) setUserPreferences(data.preferences);
+            if (data.profile?.fullName) {
+              useAuth.getState().updateUser({ fullName: data.profile.fullName });
+            }
           }
         }
       }
@@ -75,7 +85,18 @@ export function useDataSync() {
     } finally {
       isSyncingRef.current = false;
     }
-  }, [user, experiences, wishlistItems, adventures, setExperiences, setWishlistItems, setLocations, setAdventures]);
+  }, [
+    user,
+    experiences,
+    wishlistItems,
+    adventures,
+    userPreferences,
+    setExperiences,
+    setWishlistItems,
+    setLocations,
+    setAdventures,
+    setUserPreferences,
+  ]);
 
   // Trigger sync on login / user session change
   useEffect(() => {
@@ -134,6 +155,13 @@ export function useDataSync() {
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'adventures', filter: `user_id=eq.${user.id}` },
+          () => {
+            syncData();
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'user_preferences', filter: `user_id=eq.${user.id}` },
           () => {
             syncData();
           }

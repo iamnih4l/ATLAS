@@ -9,6 +9,7 @@ import {
   Adventure,
   AdventureDestination,
   AIConversationThread,
+  UserPreferences,
 } from '@/types';
 
 export const DEFAULT_CATEGORIES: Category[] = [
@@ -118,6 +119,10 @@ interface AtlasState {
   setActiveConversationId: (id: string | null) => void;
   deleteConversation: (id: string) => void;
 
+  // User Preferences
+  userPreferences: UserPreferences | null;
+  setUserPreferences: (prefs: Partial<UserPreferences>) => void;
+
   resetStore: () => void;
 }
 
@@ -164,6 +169,43 @@ export const useAtlasStore = create<AtlasState>()(
       selectedAdventure: null,
       conversations: [],
       activeConversationId: null,
+
+      userPreferences: {
+        id: 'default-prefs',
+        user_id: 'guest',
+        favorite_categories: [],
+        interests: [],
+        preferred_distance_km: 50,
+        travel_budget: 'moderate',
+        home_latitude: null,
+        home_longitude: null,
+        ai_personalization: true,
+        location_permission: false,
+        default_privacy: 'private',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+      setUserPreferences: (prefs) =>
+        set((state) => ({
+          userPreferences: state.userPreferences
+            ? { ...state.userPreferences, ...prefs, updated_at: new Date().toISOString() }
+            : ({
+                id: 'default-prefs',
+                user_id: 'guest',
+                favorite_categories: [],
+                interests: [],
+                preferred_distance_km: 50,
+                travel_budget: 'moderate',
+                home_latitude: null,
+                home_longitude: null,
+                ai_personalization: true,
+                location_permission: false,
+                default_privacy: 'private',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                ...prefs,
+              } as UserPreferences),
+        })),
 
       setLocations: (locations) => set({ locations }),
       addLocation: (location) => {
@@ -458,6 +500,7 @@ export const useAtlasStore = create<AtlasState>()(
         categories: state.categories,
         adventures: state.adventures,
         conversations: state.conversations,
+        userPreferences: state.userPreferences,
       }),
     }
   )

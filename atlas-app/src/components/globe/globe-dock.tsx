@@ -34,11 +34,14 @@ export function GlobeDock() {
 
   return (
     <div className="fixed bottom-20 sm:bottom-5 left-1/2 -translate-x-1/2 z-30 pointer-events-auto select-none flex max-w-[95vw] overflow-x-auto no-scrollbar">
-      <Dock className="items-center pb-1 border-2 border-[#171313] shadow-pop-lg bg-[#FFF4D9]/95 backdrop-blur-xl rounded-3xl p-1.5">
+      <Dock
+        disableMagnification
+        className="items-center border-2 border-[#171313] shadow-pop-lg bg-[#FFF4D9]/95 backdrop-blur-xl rounded-3xl p-1.5"
+      >
         {/* Reset Global Orbit */}
         <DockItem
           onClick={resetView}
-          className="aspect-square rounded-2xl bg-[#326BEE] hover:bg-[#326BEE]/90 text-white border-2 border-[#171313] shadow-pop-sm transition-all hover:scale-110 active:translate-x-0.5 active:translate-y-0.5 cursor-pointer"
+          className="aspect-square rounded-2xl bg-[#326BEE] hover:bg-[#326BEE]/90 text-white border-2 border-[#171313] shadow-pop-sm active:translate-x-0.5 active:translate-y-0.5 cursor-pointer"
         >
           <DockLabel className="border-2 border-[#171313] shadow-pop-sm bg-[#FFD45A] font-black text-[#171313]">
             Global Orbit View
@@ -55,7 +58,7 @@ export function GlobeDock() {
             onClick={() => flyToLocation(loc)}
             className={`aspect-square rounded-2xl ${
               POP_COLORS[idx % POP_COLORS.length]
-            } border-2 border-[#171313] shadow-pop-sm transition-all hover:scale-110 active:translate-x-0.5 active:translate-y-0.5 cursor-pointer`}
+            } border-2 border-[#171313] shadow-pop-sm active:translate-x-0.5 active:translate-y-0.5 cursor-pointer`}
           >
             <DockLabel className="border-2 border-[#171313] shadow-pop-sm bg-white font-black text-[#171313]">
               {loc.name}
@@ -71,7 +74,7 @@ export function GlobeDock() {
         {/* Ask Orion AI */}
         <DockItem
           onClick={() => router.push('/discover')}
-          className="aspect-square rounded-2xl bg-[#6425F5] hover:bg-[#6425F5]/90 text-white border-2 border-[#171313] shadow-pop-sm transition-all hover:scale-110 active:translate-x-0.5 active:translate-y-0.5 cursor-pointer"
+          className="aspect-square rounded-2xl bg-[#6425F5] hover:bg-[#6425F5]/90 text-white border-2 border-[#171313] shadow-pop-sm active:translate-x-0.5 active:translate-y-0.5 cursor-pointer"
         >
           <DockLabel className="border-2 border-[#171313] shadow-pop-sm bg-[#FFD45A] font-black text-[#171313]">
             Ask Orion AI
@@ -84,7 +87,7 @@ export function GlobeDock() {
         {/* Record New Memory */}
         <DockItem
           onClick={() => setExperienceModalOpen(true)}
-          className="aspect-square rounded-2xl bg-[#F04432] hover:bg-[#F04432]/90 text-white border-2 border-[#171313] shadow-pop-sm transition-all hover:scale-110 active:translate-x-0.5 active:translate-y-0.5 cursor-pointer"
+          className="aspect-square rounded-2xl bg-[#F04432] hover:bg-[#F04432]/90 text-white border-2 border-[#171313] shadow-pop-sm active:translate-x-0.5 active:translate-y-0.5 cursor-pointer"
         >
           <DockLabel className="border-2 border-[#171313] shadow-pop-sm bg-[#FFD45A] font-black text-[#171313]">
             + Log New Memory
