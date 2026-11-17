@@ -92,15 +92,28 @@ export function AtlasPixelLoader({
         setProgress(60);
 
         // Populate store if backend returned fresh records
-        if (expResult.status === 'fulfilled' && expResult.value?.experiences) {
-          setExperiences(expResult.value.experiences);
-          if (expResult.value.locations) {
-            setLocations(expResult.value.locations);
+        if (expResult.status === 'fulfilled' && expResult.value) {
+          const rawExps = Array.isArray(expResult.value)
+            ? expResult.value
+            : expResult.value.experiences || [];
+          if (rawExps.length > 0) {
+            setExperiences(rawExps);
+            const extractedLocations = rawExps
+              .map((e: any) => e.location)
+              .filter(Boolean);
+            if (extractedLocations.length > 0) {
+              setLocations(extractedLocations);
+            }
           }
         }
 
-        if (wishResult.status === 'fulfilled' && wishResult.value?.items) {
-          setWishlistItems(wishResult.value.items);
+        if (wishResult.status === 'fulfilled' && wishResult.value) {
+          const rawWish = Array.isArray(wishResult.value)
+            ? wishResult.value
+            : wishResult.value.wishlist || wishResult.value.items || [];
+          if (rawWish.length > 0) {
+            setWishlistItems(rawWish);
+          }
         }
 
         setProgress(85);

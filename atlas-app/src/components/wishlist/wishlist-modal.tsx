@@ -2,13 +2,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAtlasStore } from '@/lib/store';
+import { useAuth } from '@/hooks/use-auth';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { searchPlaces, GeocodingResult } from '@/lib/geocoding';
-import { WishlistItem, Location } from '@/types';
+import { WishlistItem, WishlistStatus, Location } from '@/types';
 import {
   BookmarkCheck,
   MapPin,
@@ -22,6 +23,7 @@ import {
 } from 'lucide-react';
 
 export function WishlistModal() {
+  const { user } = useAuth();
   const {
     isWishlistModalOpen,
     setWishlistModalOpen,
@@ -44,6 +46,7 @@ export function WishlistModal() {
   const [description, setDescription] = useState('');
   const [categoryId, setCategoryId] = useState('1');
   const [priority, setPriority] = useState<'high' | 'medium' | 'low'>('medium');
+  const [status, setStatus] = useState<WishlistStatus>('dreaming');
   const [estimatedBudget, setEstimatedBudget] = useState<string>('');
   const [notes, setNotes] = useState('');
   const [source, setSource] = useState('');
@@ -68,6 +71,10 @@ export function WishlistModal() {
       setDescription(editingWishlistItem.description || '');
       setCategoryId(editingWishlistItem.category_id || '1');
       setPriority(editingWishlistItem.priority);
+      setStatus(
+        editingWishlistItem.status ||
+          (editingWishlistItem.is_completed ? 'visited' : 'dreaming')
+      );
       setEstimatedBudget(editingWishlistItem.estimated_budget ? String(editingWishlistItem.estimated_budget) : '');
       setNotes(editingWishlistItem.notes || '');
       setSource(editingWishlistItem.source || '');
@@ -92,6 +99,7 @@ export function WishlistModal() {
       setLongitude(pendingLocation.longitude);
       setTitle(pendingLocation.name ? `Visit ${pendingLocation.name}` : '');
       setPriority('medium');
+      setStatus('dreaming');
     } else {
       resetForm();
     }
@@ -102,6 +110,7 @@ export function WishlistModal() {
     setDescription('');
     setCategoryId('1');
     setPriority('medium');
+    setStatus('dreaming');
     setEstimatedBudget('');
     setNotes('');
     setSource('');
@@ -192,13 +201,18 @@ export function WishlistModal() {
     const budgetNum = estimatedBudget ? parseFloat(estimatedBudget) : null;
     const cat = categories.find((c) => c.id === categoryId);
     const loc = resolvedLocation || (locId ? locations.find((l) => l.id === locId) : undefined);
+    const isCompleted = status === 'visited';
+    const itemTags = status === 'dreaming' ? ['Dreaming'] : [];
 
     if (editingWishlistItem) {
-      updateWishlistItem(editingWishlistItem.id, {
+      const wishId = editingWishlistItem.id;
+      const updates = {
         title,
         description,
         category_id: categoryId,
         priority,
+        status,
+        tags: itemTags,
         estimated_budget: budgetNum,
         notes,
         source,
@@ -206,21 +220,59 @@ export function WishlistModal() {
         location_id: locId,
         location: loc,
         category: cat,
-      });
+        is_completed: isCompleted,
+      };
+      updateWishlistItem(wishId, updates);
+
+      if (user && !user.isGuest) {
+        fetch('/api/wishlist', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: wishId,
+            updates: {
+              title,
+              description,
+              category_id: categoryId,
+              priority,
+              status,
+              tags: itemTags,
+              estimated_budget: budgetNum,
+              notes,
+              source,
+              reference_image_url: referenceImageUrl,
+              is_completed: isCompleted,
+            },
+            location: loc,
+          }),
+        })
+          .then(async (res) => {
+            if (res.ok) {
+              const data = await res.json();
+              if (data?.id) {
+                useAtlasStore.getState().updateWishlistItem(wishId, data);
+              }
+            }
+          })
+          .catch((err) => console.warn('Failed to sync updated wishlist item:', err));
+      }
     } else {
+      const tempId = `wish-${Date.now()}`;
       const newItem: WishlistItem = {
-        id: `wish-${Date.now()}`,
-        user_id: 'guest-user',
+        id: tempId,
+        user_id: user?.id || 'guest-user',
         title,
         location_id: locId,
         description,
         category_id: categoryId,
         priority,
+        status,
+        tags: itemTags,
         estimated_budget: budgetNum,
         notes,
-        source: source || 'Personal Bucket List',
+        source: source || (status === 'dreaming' ? 'Dream List Destination' : 'Personal Bucket List'),
         reference_image_url: referenceImageUrl || 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80',
-        is_completed: false,
+        is_completed: isCompleted,
         completed_experience_id: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -228,6 +280,40 @@ export function WishlistModal() {
         category: cat,
       };
       addWishlistItem(newItem);
+
+      if (user && !user.isGuest) {
+        fetch('/api/wishlist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title,
+            description,
+            category_id: categoryId,
+            priority,
+            status,
+            tags: itemTags,
+            estimated_budget: budgetNum,
+            notes,
+            source: newItem.source,
+            reference_image_url: newItem.reference_image_url,
+            is_completed: isCompleted,
+            location: loc,
+          }),
+        })
+          .then(async (res) => {
+            if (res.ok) {
+              const data = await res.json();
+              if (data?.id) {
+                useAtlasStore.getState().updateWishlistItem(tempId, {
+                  id: data.id,
+                  location_id: data.location_id,
+                  location: data.location || loc,
+                });
+              }
+            }
+          })
+          .catch((err) => console.warn('Failed to sync new wishlist item:', err));
+      }
 
       if (loc) {
         setFlyToTarget({
@@ -250,7 +336,13 @@ export function WishlistModal() {
 
   const handleDelete = () => {
     if (editingWishlistItem) {
-      deleteWishlistItem(editingWishlistItem.id);
+      const wishId = editingWishlistItem.id;
+      deleteWishlistItem(wishId);
+      if (user && !user.isGuest) {
+        fetch(`/api/wishlist?id=${wishId}`, { method: 'DELETE' }).catch((err) =>
+          console.warn('Failed to delete on server:', err)
+        );
+      }
       handleClose();
     }
   };
@@ -259,21 +351,36 @@ export function WishlistModal() {
     <Modal
       isOpen={isWishlistModalOpen}
       onClose={handleClose}
-      title={editingWishlistItem ? 'Edit Bucket List Item' : 'Add to Geographical Wishlist'}
+      title={editingWishlistItem ? 'Edit Wishlist / Dream Destination' : 'Add to Geographical Wishlist'}
       description="Save a dream destination or future activity to explore on the globe."
       maxWidth="xl"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <Input
           label="Activity or Destination *"
-          placeholder="e.g. Scuba Diving the Great Barrier Reef"
+          placeholder="e.g. Skydive Dubai"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           required
         />
 
-        {/* Priority & Budget */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        {/* Status, Priority, Category & Budget */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+          <div>
+            <label className="block text-xs font-black text-[#171313] uppercase tracking-wider mb-1.5">
+              Status / Aspiration
+            </label>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value as WishlistStatus)}
+              className="w-full bg-white border-2 border-[#171313] rounded-2xl px-3 py-2 text-xs text-[#171313] focus:outline-none shadow-pop-sm font-black cursor-pointer"
+            >
+              <option value="dreaming">✦ Dreaming (Dream List)</option>
+              <option value="planned">🏔️ Planned Trip</option>
+              <option value="visited">✅ Visited (Completed)</option>
+            </select>
+          </div>
+
           <div>
             <label className="block text-xs font-black text-[#171313] uppercase tracking-wider mb-1.5">
               Priority Level
@@ -281,7 +388,7 @@ export function WishlistModal() {
             <select
               value={priority}
               onChange={(e) => setPriority(e.target.value as any)}
-              className="w-full bg-white border-2 border-[#171313] rounded-2xl px-3.5 py-2 text-sm text-[#171313] focus:outline-none shadow-pop-sm font-black cursor-pointer"
+              className="w-full bg-white border-2 border-[#171313] rounded-2xl px-3 py-2 text-xs text-[#171313] focus:outline-none shadow-pop-sm font-black cursor-pointer"
             >
               <option value="high">High Priority</option>
               <option value="medium">Medium Priority</option>
@@ -296,7 +403,7 @@ export function WishlistModal() {
             <select
               value={categoryId}
               onChange={(e) => setCategoryId(e.target.value)}
-              className="w-full bg-white border-2 border-[#171313] rounded-2xl px-3.5 py-2 text-sm text-[#171313] focus:outline-none shadow-pop-sm font-black cursor-pointer"
+              className="w-full bg-white border-2 border-[#171313] rounded-2xl px-3 py-2 text-xs text-[#171313] focus:outline-none shadow-pop-sm font-black cursor-pointer"
             >
               {categories.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -309,7 +416,7 @@ export function WishlistModal() {
           <div>
             <Input
               type="number"
-              label="Estimated Budget (USD)"
+              label="Budget (USD)"
               placeholder="e.g. 800"
               value={estimatedBudget}
               onChange={(e) => setEstimatedBudget(e.target.value)}

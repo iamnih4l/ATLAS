@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useAtlasStore } from '@/lib/store';
+import { useAuth } from '@/hooks/use-auth';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,6 +34,7 @@ import { TRAVEL_MOODS, JoyBlob, StarSpike, WanderBlob, ChillCloud, SunDoodle } f
 import { WashiTape, PassportStamp } from '@/components/ui/doodles';
 
 export function ExperienceModal() {
+  const { user } = useAuth();
   const {
     isExperienceModalOpen,
     setExperienceModalOpen,
@@ -303,7 +305,8 @@ export function ExperienceModal() {
 
     // Step 2: Create or update experience referencing this location
     if (editingExperience) {
-      updateExperience(editingExperience.id, {
+      const expId = editingExperience.id;
+      const updates = {
         title,
         description,
         date,
@@ -315,11 +318,43 @@ export function ExperienceModal() {
         location_id: targetLocation.id,
         location: targetLocation,
         category: selectedCategory,
-      });
+      };
+      updateExperience(expId, updates);
+
+      if (user && !user.isGuest) {
+        fetch('/api/experiences', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: expId,
+            updates: {
+              title,
+              description,
+              date,
+              rating,
+              category_id: categoryId,
+              privacy,
+              notes,
+              cover_image_url: coverImageUrl || editingExperience.cover_image_url,
+            },
+            location: targetLocation,
+          }),
+        })
+          .then(async (res) => {
+            if (res.ok) {
+              const data = await res.json();
+              if (data?.id) {
+                useAtlasStore.getState().updateExperience(expId, data);
+              }
+            }
+          })
+          .catch((err) => console.warn('Failed to sync updated experience:', err));
+      }
     } else {
+      const tempId = `exp-${Date.now()}`;
       const newExperience: Experience = {
-        id: `exp-${Date.now()}`,
-        user_id: 'demo-user',
+        id: tempId,
+        user_id: user?.id || 'guest-user',
         location_id: targetLocation.id,
         title,
         description,
@@ -339,10 +374,57 @@ export function ExperienceModal() {
 
       // If this came from a wishlist item, mark that item completed!
       if (convertingWishlistToExperience) {
-        useAtlasStore.getState().updateWishlistItem(convertingWishlistToExperience.id, {
+        const wishId = convertingWishlistToExperience.id;
+        useAtlasStore.getState().updateWishlistItem(wishId, {
           is_completed: true,
-          completed_experience_id: newExperience.id,
+          completed_experience_id: tempId,
         });
+        if (user && !user.isGuest) {
+          fetch('/api/wishlist', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: wishId,
+              updates: { is_completed: true, status: 'visited' },
+            }),
+          }).catch((err) => console.warn('Failed to update wishlist completion on server:', err));
+        }
+      }
+
+      if (user && !user.isGuest) {
+        fetch('/api/experiences', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title,
+            description,
+            date,
+            rating,
+            category_id: categoryId,
+            privacy,
+            notes,
+            cover_image_url: coverImageUrl || 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=1200&q=80',
+            location: targetLocation,
+          }),
+        })
+          .then(async (res) => {
+            if (res.ok) {
+              const data = await res.json();
+              if (data?.id) {
+                useAtlasStore.getState().updateExperience(tempId, {
+                  id: data.id,
+                  location_id: data.location_id,
+                  location: data.location || targetLocation,
+                });
+                if (convertingWishlistToExperience) {
+                  useAtlasStore.getState().updateWishlistItem(convertingWishlistToExperience.id, {
+                    completed_experience_id: data.id,
+                  });
+                }
+              }
+            }
+          })
+          .catch((err) => console.warn('Failed to sync new experience:', err));
       }
 
       // Fly to new location on globe
@@ -358,7 +440,13 @@ export function ExperienceModal() {
 
   const handleDelete = () => {
     if (editingExperience) {
-      deleteExperience(editingExperience.id);
+      const expId = editingExperience.id;
+      deleteExperience(expId);
+      if (user && !user.isGuest) {
+        fetch(`/api/experiences?id=${expId}`, { method: 'DELETE' }).catch((err) =>
+          console.warn('Failed to delete on server:', err)
+        );
+      }
       handleClose();
     }
   };

@@ -73,6 +73,8 @@ export interface ExperienceTag {
   tag_id: string;
 }
 
+export type WishlistStatus = 'dreaming' | 'planned' | 'visited';
+
 export interface WishlistItem {
   id: string;
   user_id: string;
@@ -81,6 +83,8 @@ export interface WishlistItem {
   description: string | null;
   category_id: string | null;
   priority: 'high' | 'medium' | 'low';
+  status?: WishlistStatus;
+  tags?: string[];
   estimated_budget: number | null;
   notes: string | null;
   source: string | null;

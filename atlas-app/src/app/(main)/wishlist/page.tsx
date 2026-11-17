@@ -29,11 +29,18 @@ import { ChillCloud, StarSpike } from '@/components/ui/mascot-doodles';
 import { VerifiedStamp, TicketBadge } from '@/components/ui/atlas-illustrations';
 import { Adventure, AdventureStatus, AdventureDestination } from '@/types';
 import { Modal } from '@/components/ui/modal';
+import { isDreamingItem } from '@/lib/wishlist-utils';
 
 function WishlistContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const initialTab = searchParams.get('tab') === 'bucket_list' ? 'bucket_list' : 'adventures';
+  const tabParam = searchParams.get('tab');
+  const initialTab =
+    tabParam === 'adventures'
+      ? 'adventures'
+      : tabParam === 'all_wishlist'
+      ? 'all_wishlist'
+      : 'bucket_list';
   const highlightedAdvId = searchParams.get('id');
 
   const {
@@ -53,9 +60,10 @@ function WishlistContent() {
     setFlyToTarget,
   } = useAtlasStore();
 
-  const [activeTab, setActiveTab] = useState<'adventures' | 'bucket_list'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'bucket_list' | 'adventures' | 'all_wishlist'>(initialTab);
   const [adventureStatusFilter, setAdventureStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<'all' | 'high' | 'medium' | 'low'>('all');
+  const [wishlistStatusFilter, setWishlistStatusFilter] = useState<'all' | 'dreaming' | 'planned' | 'visited'>('all');
   const [showCompleted, setShowCompleted] = useState(false);
   const [expandedAdvIds, setExpandedAdvIds] = useState<Set<string>>(new Set());
 
@@ -104,14 +112,29 @@ function WishlistContent() {
     });
   }, [adventures, adventureStatusFilter]);
 
-  // Filtered Wishlist Pins
-  const filteredItems = useMemo(() => {
+  // Dream List Pins: Strictly Dreaming entries (Derived automatically, never visited)
+  const dreamListItems = useMemo(() => {
     return wishlistItems.filter((item) => {
-      if (!showCompleted && item.is_completed) return false;
+      if (!isDreamingItem(item)) return false;
       if (priorityFilter !== 'all' && item.priority !== priorityFilter) return false;
       return true;
     });
-  }, [wishlistItems, priorityFilter, showCompleted]);
+  }, [wishlistItems, priorityFilter]);
+
+  // All Wishlist Pins: Complete overview with status & priority filters
+  const allWishlistFilteredItems = useMemo(() => {
+    return wishlistItems.filter((item) => {
+      if (wishlistStatusFilter !== 'all') {
+        const itemStat = item.status || (item.is_completed ? 'visited' : 'dreaming');
+        if (itemStat !== wishlistStatusFilter) return false;
+      }
+      if (priorityFilter !== 'all' && item.priority !== priorityFilter) return false;
+      return true;
+    });
+  }, [wishlistItems, wishlistStatusFilter, priorityFilter]);
+
+  // Legacy compatibility accessor
+  const filteredItems = activeTab === 'bucket_list' ? dreamListItems : allWishlistFilteredItems;
 
   const toggleExpandAdventure = (id: string) => {
     setExpandedAdvIds((prev) => {
@@ -314,18 +337,31 @@ function WishlistContent() {
               className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black text-white bg-[#F04432] border-2 border-[#171313] shadow-pop hover:scale-105 active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer"
             >
               <Plus className="w-4 h-4 stroke-[3]" />
-              <span>Add Dream Pin</span>
+              <span>{activeTab === 'bucket_list' ? 'Add Dream Pin' : 'Add Wishlist Pin'}</span>
             </button>
           )}
         </div>
       </div>
 
       {/* Primary Tab Switcher */}
-      <div className="flex items-center gap-3 border-b-2 border-[#171313] pb-2">
+      <div className="flex items-center gap-2 sm:gap-3 border-b-2 border-[#171313] pb-2 overflow-x-auto">
+        <button
+          onClick={() => setActiveTab('bucket_list')}
+          className={cn(
+            'px-4 sm:px-5 py-2 sm:py-2.5 rounded-2xl text-xs font-black transition-all cursor-pointer border-2 border-[#171313] flex items-center gap-2 whitespace-nowrap',
+            activeTab === 'bucket_list'
+              ? 'bg-[#F04432] text-white shadow-pop scale-105'
+              : 'bg-white text-[#171313]/70 hover:bg-[#F04432]/10 shadow-pop-sm'
+          )}
+        >
+          <Sparkles className="w-4 h-4 stroke-[2.5]" />
+          <span>✦ Dream List ({wishlistItems.filter(isDreamingItem).length})</span>
+        </button>
+
         <button
           onClick={() => setActiveTab('adventures')}
           className={cn(
-            'px-5 py-2.5 rounded-2xl text-xs font-black transition-all cursor-pointer border-2 border-[#171313] flex items-center gap-2',
+            'px-4 sm:px-5 py-2 sm:py-2.5 rounded-2xl text-xs font-black transition-all cursor-pointer border-2 border-[#171313] flex items-center gap-2 whitespace-nowrap',
             activeTab === 'adventures'
               ? 'bg-[#6425F5] text-white shadow-pop scale-105'
               : 'bg-white text-[#171313]/70 hover:bg-[#6425F5]/10 shadow-pop-sm'
@@ -336,16 +372,16 @@ function WishlistContent() {
         </button>
 
         <button
-          onClick={() => setActiveTab('bucket_list')}
+          onClick={() => setActiveTab('all_wishlist')}
           className={cn(
-            'px-5 py-2.5 rounded-2xl text-xs font-black transition-all cursor-pointer border-2 border-[#171313] flex items-center gap-2',
-            activeTab === 'bucket_list'
-              ? 'bg-[#F04432] text-white shadow-pop scale-105'
-              : 'bg-white text-[#171313]/70 hover:bg-[#F04432]/10 shadow-pop-sm'
+            'px-4 sm:px-5 py-2 sm:py-2.5 rounded-2xl text-xs font-black transition-all cursor-pointer border-2 border-[#171313] flex items-center gap-2 whitespace-nowrap',
+            activeTab === 'all_wishlist'
+              ? 'bg-[#10B981] text-white shadow-pop scale-105'
+              : 'bg-white text-[#171313]/70 hover:bg-[#10B981]/10 shadow-pop-sm'
           )}
         >
           <BookmarkCheck className="w-4 h-4 stroke-[2.5]" />
-          <span>Dream Locations ({wishlistItems.filter((w) => !w.is_completed).length})</span>
+          <span>All Wishlist ({wishlistItems.length})</span>
         </button>
       </div>
 
@@ -621,12 +657,24 @@ function WishlistContent() {
       )}
 
       {/* ========================================================================= */}
-      {/* BUCKET LIST PINS TAB CONTENT */}
+      {/* BUCKET LIST / DREAM LIST TAB CONTENT (DERIVED FROM WISHLIST DREAMING PINS) */}
       {/* ========================================================================= */}
       {activeTab === 'bucket_list' && (
         <div className="space-y-6">
-          {/* Priority Filter Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 bg-white border-2 border-[#171313] p-3.5 rounded-2xl shadow-pop">
+          {/* Automatic Dream List Banner & Priority Filters */}
+          <div className="bg-[#FFF4D9] border-2 border-[#171313] p-4 rounded-3xl shadow-pop flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-[#6425F5] text-white border-2 border-[#171313] flex items-center justify-center shrink-0 shadow-pop-sm">
+                <Sparkles className="w-5 h-5 stroke-[2.5]" />
+              </div>
+              <div>
+                <h2 className="text-sm font-black text-[#171313]">Automated Dream List</h2>
+                <p className="text-xs text-[#171313]/70 font-bold">
+                  All wishlist pins marked or tagged with <strong>Dreaming</strong> automatically appear here. When marked as Visited, they graduate to your Memories!
+                </p>
+              </div>
+            </div>
+
             <div className="flex items-center gap-2 flex-wrap">
               {(['all', 'high', 'medium', 'low'] as const).map((p) => {
                 const isSelected = priorityFilter === p;
@@ -635,7 +683,7 @@ function WishlistContent() {
                     key={p}
                     onClick={() => setPriorityFilter(p)}
                     className={cn(
-                      'px-4 py-1.5 rounded-xl text-xs font-black capitalize transition-all cursor-pointer border-2 border-[#171313]',
+                      'px-3.5 py-1.5 rounded-xl text-xs font-black capitalize transition-all cursor-pointer border-2 border-[#171313]',
                       isSelected
                         ? p === 'high'
                           ? 'bg-[#F04432] text-white shadow-pop-sm scale-105'
@@ -650,22 +698,10 @@ function WishlistContent() {
                 );
               })}
             </div>
-
-            <div className="flex items-center gap-2">
-              <label className="flex items-center gap-2 text-xs font-black text-[#171313] cursor-pointer bg-[#FFF4D9] px-3 py-1.5 rounded-xl border-2 border-[#171313] shadow-pop-sm">
-                <input
-                  type="checkbox"
-                  checked={showCompleted}
-                  onChange={(e) => setShowCompleted(e.target.checked)}
-                  className="rounded border-2 border-[#171313] text-[#F04432] focus:ring-[#F04432]"
-                />
-                <span>Show Completed ({wishlistItems.filter((w) => w.is_completed).length})</span>
-              </label>
-            </div>
           </div>
 
-          {/* Wishlist Items Grid */}
-          {filteredItems.length === 0 ? (
+          {/* Dream Items Grid */}
+          {dreamListItems.length === 0 ? (
             <div className="text-center py-14 bg-white border-2 border-[#171313] rounded-3xl p-8 space-y-4 shadow-pop-lg max-w-xl mx-auto my-8 relative overflow-hidden">
               <div className="flex items-center justify-center gap-3 pt-4">
                 <ChillCloud size={46} />
@@ -675,9 +711,9 @@ function WishlistContent() {
                 <StarSpike size={42} />
               </div>
 
-              <h3 className="text-lg font-black text-[#171313]">Your Bucket List is Ready</h3>
+              <h3 className="text-lg font-black text-[#171313]">No Dream List Pins Yet</h3>
               <p className="text-xs text-[#171313]/70 font-bold max-w-sm mx-auto leading-relaxed">
-                Dreaming of exploring somewhere special? Pin future adventures and hidden spots to your geographical wishlist!
+                Add a destination and choose <strong>✦ Dreaming</strong>, or mark an existing wishlist pin as Dreaming. It will instantly show up in this view!
               </p>
               <button
                 onClick={() => {
@@ -687,12 +723,12 @@ function WishlistContent() {
                 className="mt-3 px-6 py-3 rounded-full text-xs font-black text-white bg-[#F04432] border-2 border-[#171313] shadow-pop hover:scale-105 active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer inline-flex items-center gap-2"
               >
                 <Plus className="w-4 h-4 stroke-[3]" />
-                <span>Add First Dream Location</span>
+                <span>Add Dream Pin</span>
               </button>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredItems.map((item, idx) => {
+              {dreamListItems.map((item, idx) => {
                 const isHigh = item.priority === 'high';
                 const isLow = item.priority === 'low';
 
@@ -702,8 +738,7 @@ function WishlistContent() {
                     onClick={() => handleEdit(item)}
                     className={cn(
                       'relative bg-white border-2 border-[#171313] rounded-3xl p-4 pb-4 cursor-pointer transition-all duration-300 group flex flex-col justify-between shadow-pop hover:shadow-pop-lg hover:-translate-y-1',
-                      idx % 2 === 0 ? '-rotate-[0.75deg] hover:rotate-0' : 'rotate-[0.75deg] hover:rotate-0',
-                      item.is_completed ? 'bg-emerald-50/60' : 'bg-white'
+                      idx % 2 === 0 ? '-rotate-[0.75deg] hover:rotate-0' : 'rotate-[0.75deg] hover:rotate-0'
                     )}
                   >
                     <WashiTape
@@ -723,10 +758,13 @@ function WishlistContent() {
                           alt={item.title}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         />
-                        <div className="absolute top-3 left-3 flex items-center gap-1.5">
+                        <div className="absolute top-3 left-3 flex items-center gap-1.5 flex-wrap">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-[#6425F5] text-white border border-[#171313] shadow-pop-sm flex items-center gap-1">
+                            ✦ Dreaming
+                          </span>
                           <span
                             className={cn(
-                              'px-2.5 py-1 rounded-full text-[10px] font-black uppercase border border-[#171313] shadow-pop-sm',
+                              'px-2 py-0.5 rounded-full text-[10px] font-black uppercase border border-[#171313] shadow-pop-sm',
                               isHigh
                                 ? 'bg-[#F04432] text-white'
                                 : isLow
@@ -737,7 +775,211 @@ function WishlistContent() {
                             {item.priority} Priority
                           </span>
                         </div>
-                        {item.is_completed && (
+                      </div>
+
+                      {/* Content */}
+                      <div className="p-2 pt-3 space-y-1.5">
+                        <h3 className="text-sm font-black text-[#171313] group-hover:text-[#6425F5] transition-colors line-clamp-1">
+                          {item.title}
+                        </h3>
+
+                        {item.location && (
+                          <p className="text-xs text-[#171313]/70 font-black flex items-center gap-1.5 line-clamp-1">
+                            <MapPin className="w-3.5 h-3.5 text-[#F04432] shrink-0 stroke-[2.5]" />
+                            <span>{item.location.name}</span>
+                            <span className="text-[#171313]/30">•</span>
+                            <span>{item.location.country}</span>
+                          </p>
+                        )}
+
+                        {item.estimated_budget && (
+                          <p className="text-xs text-[#171313]/80 font-bold flex items-center gap-1">
+                            <DollarSign className="w-3.5 h-3.5 text-emerald-600 stroke-[2.5]" />
+                            <span>Est. Budget: {item.estimated_budget}</span>
+                          </p>
+                        )}
+
+                        {item.description && (
+                          <p className="text-xs text-[#171313]/80 font-medium line-clamp-2 leading-relaxed pt-1">
+                            {item.description}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Card Footer Actions */}
+                    <div className="px-2 pt-3 mt-1 border-t-2 border-[#171313]/10 flex items-center justify-between gap-2">
+                      <button
+                        onClick={(e) => handleFlyWishlist(e, item)}
+                        className="text-xs text-[#171313] hover:text-[#6425F5] font-black flex items-center gap-1 cursor-pointer"
+                      >
+                        <Globe2 className="w-3.5 h-3.5 stroke-[2.5]" /> Fly on Earth
+                      </button>
+
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={(e) => handleConvert(e, item)}
+                          className="px-3 py-1.5 rounded-xl text-xs font-black text-[#171313] bg-[#FFD45A] border-2 border-[#171313] shadow-pop-sm hover:scale-105 active:translate-x-0.5 active:translate-y-0.5 flex items-center gap-1 cursor-pointer transition-transform"
+                          title="Convert to Experienced Memory"
+                        >
+                          <span>Done! Record It</span>
+                          <ArrowRight className="w-3 h-3 stroke-[2.5]" />
+                        </button>
+
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (confirm(`Remove "${item.title}" from your wishlist?`)) {
+                              deleteWishlistItem(item.id);
+                              fetch(`/api/wishlist?id=${item.id}`, { method: 'DELETE' }).catch((err) =>
+                                console.warn('Failed to delete on server:', err)
+                              );
+                            }
+                          }}
+                          className="p-1.5 rounded-xl text-[#171313]/50 hover:text-[#F04432] hover:bg-[#F04432]/10 transition-colors cursor-pointer"
+                          title="Delete item"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 stroke-[2.5]" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* ALL WISHLIST PINS TAB CONTENT (FULL ARCHIVE WITH STATUS FILTERS) */}
+      {/* ========================================================================= */}
+      {activeTab === 'all_wishlist' && (
+        <div className="space-y-6">
+          {/* Status & Priority Filter Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-white border-2 border-[#171313] p-3.5 rounded-2xl shadow-pop">
+            <div className="flex items-center gap-2 flex-wrap">
+              {[
+                { key: 'all', label: `All Pins (${wishlistItems.length})` },
+                { key: 'dreaming', label: `✦ Dreaming (${wishlistItems.filter(isDreamingItem).length})` },
+                { key: 'planned', label: `🏔️ Planned (${wishlistItems.filter((w) => w.status === 'planned').length})` },
+                { key: 'visited', label: `✅ Visited (${wishlistItems.filter((w) => w.is_completed || w.status === 'visited').length})` },
+              ].map((s) => (
+                <button
+                  key={s.key}
+                  onClick={() => setWishlistStatusFilter(s.key as any)}
+                  className={cn(
+                    'px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer border-2 border-[#171313]',
+                    wishlistStatusFilter === s.key
+                      ? 'bg-[#10B981] text-white shadow-pop-sm scale-105'
+                      : 'bg-white text-[#171313]/70 hover:bg-[#10B981]/15'
+                  )}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              {(['all', 'high', 'medium', 'low'] as const).map((p) => {
+                const isSelected = priorityFilter === p;
+                return (
+                  <button
+                    key={p}
+                    onClick={() => setPriorityFilter(p)}
+                    className={cn(
+                      'px-3 py-1 rounded-xl text-[11px] font-black capitalize transition-all cursor-pointer border-2 border-[#171313]',
+                      isSelected
+                        ? 'bg-[#FFD45A] text-[#171313] shadow-pop-sm scale-105'
+                        : 'bg-white text-[#171313]/70 hover:bg-[#FFD45A]/20'
+                    )}
+                  >
+                    {p === 'all' ? 'All Priority' : `${p}`}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Grid */}
+          {allWishlistFilteredItems.length === 0 ? (
+            <div className="text-center py-14 bg-white border-2 border-[#171313] rounded-3xl p-8 space-y-4 shadow-pop-lg max-w-xl mx-auto my-8 relative overflow-hidden">
+              <h3 className="text-lg font-black text-[#171313]">No Wishlist Pins Found</h3>
+              <p className="text-xs text-[#171313]/70 font-bold max-w-sm mx-auto leading-relaxed">
+                No items match your active filters. Try resetting the status or priority filters.
+              </p>
+              <button
+                onClick={() => {
+                  setWishlistStatusFilter('all');
+                  setPriorityFilter('all');
+                }}
+                className="mt-3 px-6 py-2.5 rounded-full text-xs font-black text-[#171313] bg-[#FFD45A] border-2 border-[#171313] shadow-pop hover:scale-105 transition-all cursor-pointer inline-flex items-center gap-2"
+              >
+                Reset Filters
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {allWishlistFilteredItems.map((item, idx) => {
+                const isHigh = item.priority === 'high';
+                const isLow = item.priority === 'low';
+                const isCompleted = item.is_completed || item.status === 'visited';
+                const isDreaming = isDreamingItem(item);
+
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => handleEdit(item)}
+                    className={cn(
+                      'relative bg-white border-2 border-[#171313] rounded-3xl p-4 pb-4 cursor-pointer transition-all duration-300 group flex flex-col justify-between shadow-pop hover:shadow-pop-lg hover:-translate-y-1',
+                      idx % 2 === 0 ? '-rotate-[0.75deg] hover:rotate-0' : 'rotate-[0.75deg] hover:rotate-0',
+                      isCompleted ? 'bg-emerald-50/60' : 'bg-white'
+                    )}
+                  >
+                    <WashiTape
+                      className="absolute -top-2.5 left-1/2 -translate-x-1/2 z-20"
+                      rotate={idx % 2 === 0 ? '-2deg' : '2deg'}
+                      color={isHigh ? 'bg-[#F04432]/90' : isLow ? 'bg-[#326BEE]/90' : 'bg-[#FFD45A]/90'}
+                    />
+                    <div>
+                      {/* Reference Image */}
+                      <div className="aspect-[16/10] relative rounded-2xl overflow-hidden bg-[#171313] border-2 border-[#171313] shadow-pop-sm">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={
+                            item.reference_image_url ||
+                            'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80'
+                          }
+                          alt={item.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                        <div className="absolute top-3 left-3 flex items-center gap-1.5 flex-wrap">
+                          <span
+                            className={cn(
+                              'px-2 py-0.5 rounded-full text-[10px] font-black uppercase border border-[#171313] shadow-pop-sm flex items-center gap-1',
+                              isCompleted
+                                ? 'bg-emerald-400 text-[#171313]'
+                                : isDreaming
+                                ? 'bg-[#6425F5] text-white'
+                                : 'bg-[#326BEE] text-white'
+                            )}
+                          >
+                            {isCompleted ? '✅ Visited' : isDreaming ? '✦ Dreaming' : '🏔️ Planned'}
+                          </span>
+                          <span
+                            className={cn(
+                              'px-2 py-0.5 rounded-full text-[10px] font-black uppercase border border-[#171313] shadow-pop-sm',
+                              isHigh
+                                ? 'bg-[#F04432] text-white'
+                                : isLow
+                                ? 'bg-[#326BEE] text-white'
+                                : 'bg-[#FFD45A] text-[#171313]'
+                            )}
+                          >
+                            {item.priority} Priority
+                          </span>
+                        </div>
+                        {isCompleted && (
                           <div className="absolute top-3 right-3 bg-emerald-400 text-[#171313] px-2.5 py-1 rounded-full text-[10px] font-black flex items-center gap-1 border-2 border-[#171313] shadow-pop-sm">
                             <CheckCircle2 className="w-3.5 h-3.5 stroke-[2.5]" /> Experienced!
                           </div>
@@ -784,7 +1026,7 @@ function WishlistContent() {
                       </button>
 
                       <div className="flex items-center gap-1.5">
-                        {!item.is_completed && (
+                        {!isCompleted && (
                           <button
                             onClick={(e) => handleConvert(e, item)}
                             className="px-3 py-1.5 rounded-xl text-xs font-black text-[#171313] bg-[#FFD45A] border-2 border-[#171313] shadow-pop-sm hover:scale-105 active:translate-x-0.5 active:translate-y-0.5 flex items-center gap-1 cursor-pointer transition-transform"
@@ -800,6 +1042,9 @@ function WishlistContent() {
                             e.stopPropagation();
                             if (confirm(`Remove "${item.title}" from your wishlist?`)) {
                               deleteWishlistItem(item.id);
+                              fetch(`/api/wishlist?id=${item.id}`, { method: 'DELETE' }).catch((err) =>
+                                console.warn('Failed to delete on server:', err)
+                              );
                             }
                           }}
                           className="p-1.5 rounded-xl text-[#171313]/50 hover:text-[#F04432] hover:bg-[#F04432]/10 transition-colors cursor-pointer"
