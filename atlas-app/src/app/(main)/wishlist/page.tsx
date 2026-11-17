@@ -75,7 +75,14 @@ function WishlistContent() {
   const [newBudget, setNewBudget] = useState('');
   const [newStopsText, setNewStopsText] = useState('');
 
-  // Fetch adventures from server in background on mount
+  // Keep activeTab in sync with URL search param changes
+  useEffect(() => {
+    if (tabParam === 'adventures') setActiveTab('adventures');
+    else if (tabParam === 'all_wishlist') setActiveTab('all_wishlist');
+    else if (tabParam === 'bucket_list') setActiveTab('bucket_list');
+  }, [tabParam]);
+
+  // Fetch adventures from server in background on mount (non-destructive merge)
   useEffect(() => {
     let isCancelled = false;
     async function fetchServerAdventures() {
@@ -83,8 +90,19 @@ function WishlistContent() {
         const res = await fetch('/api/adventures');
         if (res.ok) {
           const data = await res.json();
-          if (!isCancelled && data.adventures && data.adventures.length > 0) {
-            setAdventures(data.adventures);
+          if (!isCancelled && Array.isArray(data.adventures) && data.adventures.length > 0) {
+            const currentLocal = useAtlasStore.getState().adventures;
+            const serverIds = new Set(data.adventures.map((a: Adventure) => a.id));
+            const serverTitles = new Set(
+              data.adventures.map((a: Adventure) => a.title.trim().toLowerCase())
+            );
+            const preservedLocal = currentLocal.filter(
+              (a) =>
+                !serverIds.has(a.id) &&
+                !serverTitles.has(a.title.trim().toLowerCase()) &&
+                a.id.startsWith('adv-')
+            );
+            setAdventures([...data.adventures, ...preservedLocal]);
           }
         }
       } catch (err) {
@@ -264,7 +282,17 @@ function WishlistContent() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ adventure: newAdv, destinations }),
-    }).catch((err) => console.warn('Save adventure error:', err));
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.success && data.adventure && data.adventure.id !== advId) {
+          const state = useAtlasStore.getState();
+          state.setAdventures(
+            state.adventures.map((a) => (a.id === advId ? data.adventure : a))
+          );
+        }
+      })
+      .catch((err) => console.warn('Save adventure error:', err));
   };
 
   const handleEdit = (item: any) => {

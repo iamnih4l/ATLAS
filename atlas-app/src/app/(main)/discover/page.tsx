@@ -405,7 +405,7 @@ function DiscoverContent() {
     setSavedAdventureTitles((prev) => new Set(prev).add(preview.title));
 
     try {
-      await fetch('/api/adventures', {
+      const res = await fetch('/api/adventures', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -413,6 +413,18 @@ function DiscoverContent() {
           destinations,
         }),
       });
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.success && data.adventure && data.adventure.id !== advId) {
+          const state = useAtlasStore.getState();
+          state.setAdventures(
+            state.adventures.map((a) => (a.id === advId ? data.adventure : a))
+          );
+          if (state.selectedAdventure?.id === advId) {
+            state.setSelectedAdventure(data.adventure);
+          }
+        }
+      }
     } catch (err) {
       console.warn('Failed to sync adventure to server (persisted locally):', err);
     }

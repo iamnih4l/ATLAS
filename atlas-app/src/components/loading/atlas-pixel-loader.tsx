@@ -91,18 +91,28 @@ export function AtlasPixelLoader({
 
         setProgress(60);
 
-        // Populate store if backend returned fresh records
+        // Populate store safely (merge without wiping local unsynced pins)
         if (expResult.status === 'fulfilled' && expResult.value) {
           const rawExps = Array.isArray(expResult.value)
             ? expResult.value
             : expResult.value.experiences || [];
           if (rawExps.length > 0) {
-            setExperiences(rawExps);
+            const localExps = useAtlasStore.getState().experiences;
+            const serverIds = new Set(rawExps.map((e: any) => e.id));
+            const preservedLocal = localExps.filter(
+              (e) => !serverIds.has(e.id) && e.id.startsWith('exp-')
+            );
+            setExperiences([...rawExps, ...preservedLocal]);
             const extractedLocations = rawExps
               .map((e: any) => e.location)
               .filter(Boolean);
             if (extractedLocations.length > 0) {
-              setLocations(extractedLocations);
+              const localLocs = useAtlasStore.getState().locations;
+              const locMap = new Map<string, any>();
+              [...localLocs, ...extractedLocations].forEach((l: any) => {
+                if (l?.id) locMap.set(l.id, l);
+              });
+              setLocations(Array.from(locMap.values()));
             }
           }
         }
@@ -112,7 +122,12 @@ export function AtlasPixelLoader({
             ? wishResult.value
             : wishResult.value.wishlist || wishResult.value.items || [];
           if (rawWish.length > 0) {
-            setWishlistItems(rawWish);
+            const localWish = useAtlasStore.getState().wishlistItems;
+            const serverIds = new Set(rawWish.map((w: any) => w.id));
+            const preservedLocal = localWish.filter(
+              (w) => !serverIds.has(w.id) && w.id.startsWith('wish-')
+            );
+            setWishlistItems([...rawWish, ...preservedLocal]);
           }
         }
 

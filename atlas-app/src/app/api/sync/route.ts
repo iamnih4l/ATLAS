@@ -1,154 +1,138 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-async function resolveLocationId(supabase: any, location: any, location_id?: string | null): Promise<string | null> {
-  if (location_id && UUID_REGEX.test(location_id)) {
-    return location_id;
-  }
-
-  if (location && typeof location.latitude === 'number' && typeof location.longitude === 'number') {
-    if (location.place_id) {
-      const { data: existingByPlace } = await supabase
-        .from('locations')
-        .select('id')
-        .eq('place_id', location.place_id)
-        .maybeSingle();
-
-      if (existingByPlace?.id) {
-        return existingByPlace.id;
-      }
-    }
-
-    const { data: existingByCoords } = await supabase
-      .from('locations')
-      .select('id')
-      .gte('latitude', location.latitude - 0.0002)
-      .lte('latitude', location.latitude + 0.0002)
-      .gte('longitude', location.longitude - 0.0002)
-      .lte('longitude', location.longitude + 0.0002)
-      .maybeSingle();
-
-    if (existingByCoords?.id) {
-      return existingByCoords.id;
-    }
-
-    const { data: newLoc, error: locErr } = await supabase
-      .from('locations')
-      .insert({
-        name: location.name || 'Selected Point on Earth',
-        city: location.city || null,
-        country: location.country || 'Earth',
-        venue: location.venue || null,
-        latitude: location.latitude,
-        longitude: location.longitude,
-        place_id: location.place_id || null,
-      })
-      .select('id')
-      .single();
-
-    if (!locErr && newLoc?.id) {
-      return newLoc.id;
-    }
-  }
-
-  return null;
-}
+import {
+  UUID_REGEX,
+  isValidUuid,
+  normalizeDbAdventure,
+  persistAdventureToSupabase,
+  resolveOrCreateLocationId,
+} from '@/lib/adventure-db';
+import { Adventure, AdventureDestination } from '@/types';
 
 async function resolveCategoryId(supabase: any, category_id?: string | null): Promise<string | null> {
   if (!category_id) return null;
   if (UUID_REGEX.test(category_id)) return category_id;
 
-  const { data: cat } = await supabase
+  const { data: defaultCats } = await supabase
     .from('categories')
-    .select('id')
-    .or(`slug.eq.${category_id},name.eq.${category_id}`)
-    .maybeSingle();
+    .select('id, name, slug')
+    .eq('is_default', true);
 
-  return cat?.id || null;
+  if (defaultCats && defaultCats.length > 0) {
+    const idx = parseInt(category_id, 10) - 1;
+    if (!isNaN(idx) && defaultCats[idx]) {
+      return defaultCats[idx].id;
+    }
+    const lowerCat = category_id.toLowerCase();
+    const matched = defaultCats.find(
+      (c: any) =>
+        c.slug === lowerCat ||
+        c.name.toLowerCase() === lowerCat
+    );
+    if (matched) return matched.id;
+    return defaultCats[0].id;
+  }
+  return null;
 }
 
-export async function GET(request: Request) {
+async function fetchUnifiedUserState(supabase: any, userId: string) {
+  // 1. Fetch Experiences
+  const { data: experiences, error: expError } = await supabase
+    .from('experiences')
+    .select('*, location:locations(*), category:categories(*), media:experience_media(*)')
+    .eq('user_id', userId)
+    .order('date', { ascending: false });
+
+  if (expError) {
+    console.warn('Sync GET experiences warning:', expError.message);
+  }
+
+  // 2. Fetch Wishlist Items
+  const { data: wishlistItems, error: wishError } = await supabase
+    .from('wishlist_items')
+    .select('*, location:locations(*), category:categories(*)')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (wishError) {
+    console.warn('Sync GET wishlist_items warning:', wishError.message);
+  }
+
+  // 3. Fetch Adventures (graceful if table doesn't exist yet)
+  const { data: rawAdventures, error: advError } = await supabase
+    .from('adventures')
+    .select('*, destinations:adventure_destinations(*, location:locations(*))')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (advError) {
+    console.warn('Sync GET adventures warning:', advError.message);
+  }
+
+  const normalizedAdventures: Adventure[] = (rawAdventures || []).map(normalizeDbAdventure);
+
+  // 4. Collect all referenced locations
+  const locationsMap = new Map<string, any>();
+  (experiences || []).forEach((e: any) => {
+    if (e.location) locationsMap.set(e.location.id, e.location);
+  });
+  (wishlistItems || []).forEach((w: any) => {
+    if (w.location) locationsMap.set(w.location.id, w.location);
+  });
+  normalizedAdventures.forEach((a: Adventure) => {
+    (a.destinations || []).forEach((d: AdventureDestination) => {
+      if (d.location) locationsMap.set(d.location.id, d.location);
+    });
+  });
+
+  // 5. Fetch Preferences & Profile
+  const { data: preferences } = await supabase
+    .from('user_preferences')
+    .select('*')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select('full_name, email, avatar_url')
+    .eq('id', userId)
+    .maybeSingle();
+
+  return {
+    experiences: experiences || [],
+    wishlistItems: (wishlistItems || []).map((w: any) => ({
+      ...w,
+      status: w.status || (w.is_completed ? 'visited' : 'dreaming'),
+    })),
+    adventures: normalizedAdventures,
+    locations: Array.from(locationsMap.values()),
+    preferences: preferences || null,
+    profile: profile
+      ? {
+          fullName: profile.full_name,
+          email: profile.email,
+          avatarUrl: profile.avatar_url,
+        }
+      : null,
+  };
+}
+
+export async function GET() {
   try {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // 1. Fetch Experiences
-    const { data: experiences, error: expError } = await supabase
-      .from('experiences')
-      .select('*, location:locations(*), category:categories(*), media:experience_media(*)')
-      .eq('user_id', user.id)
-      .order('date', { ascending: false });
-
-    if (expError) throw expError;
-
-    // 2. Fetch Wishlist Items
-    const { data: wishlistItems, error: wishError } = await supabase
-      .from('wishlist_items')
-      .select('*, location:locations(*), category:categories(*)')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
-
-    if (wishError) throw wishError;
-
-    // 3. Fetch Adventures
-    const { data: adventures, error: advError } = await supabase
-      .from('adventures')
-      .select('*, destinations:adventure_destinations(*, location:locations(*))')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
-
-    if (advError) throw advError;
-
-    // 4. Collect all referenced locations
-    const locationsMap = new Map<string, any>();
-    (experiences || []).forEach((e: any) => {
-      if (e.location) locationsMap.set(e.location.id, e.location);
-    });
-    (wishlistItems || []).forEach((w: any) => {
-      if (w.location) locationsMap.set(w.location.id, w.location);
-    });
-    (adventures || []).forEach((a: any) => {
-      (a.destinations || []).forEach((d: any) => {
-        if (d.location) locationsMap.set(d.location.id, d.location);
-      });
-    });
-
-    // 5. Fetch Preferences & Profile
-    const { data: preferences } = await supabase
-      .from('user_preferences')
-      .select('*')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    const { data: profile } = await supabase
-      .from('user_profiles')
-      .select('full_name, email, avatar_url')
-      .eq('id', user.id)
-      .maybeSingle();
+    const unified = await fetchUnifiedUserState(supabase, user.id);
 
     return NextResponse.json({
       success: true,
-      experiences: experiences || [],
-      wishlistItems: (wishlistItems || []).map((w: any) => ({
-        ...w,
-        status: w.status || (w.is_completed ? 'visited' : 'dreaming'),
-      })),
-      adventures: adventures || [],
-      locations: Array.from(locationsMap.values()),
-      preferences: preferences || null,
-      profile: profile
-        ? {
-            fullName: profile.full_name,
-            email: profile.email,
-            avatarUrl: profile.avatar_url,
-          }
-        : null,
+      ...unified,
     });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Server error' }, { status: 500 });
@@ -158,16 +142,23 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await request.json();
-    const { localExperiences = [], localWishlistItems = [], localAdventures = [] } = body;
+    const {
+      localExperiences = [],
+      localWishlistItems = [],
+      localAdventures = [],
+      localLocations = [],
+    } = body;
 
-    // Existing records in database to prevent duplicates
+    // Fetch existing database records to prevent duplicates
     const { data: existingExperiences } = await supabase
       .from('experiences')
       .select('id, title, date, location_id')
@@ -178,22 +169,32 @@ export async function POST(request: Request) {
       .select('id, title, location_id')
       .eq('user_id', user.id);
 
+    const { data: existingAdventures } = await supabase
+      .from('adventures')
+      .select('id, title')
+      .eq('user_id', user.id);
+
     // 1. Migrate Local Experiences
     for (const exp of localExperiences) {
-      // If it's a temporary client ID or unsynced record
-      const isLocalOnly = !exp.id || !UUID_REGEX.test(exp.id) || exp.user_id !== user.id;
+      const isLocalOnly = !isValidUuid(exp.id) || exp.user_id !== user.id;
       if (!isLocalOnly) continue;
 
-      // Duplicate check: Same title and date
       const isDuplicate = existingExperiences?.some(
-        (e) => e.title.trim().toLowerCase() === (exp.title || '').trim().toLowerCase() && e.date === exp.date
+        (e: any) =>
+          e.title.trim().toLowerCase() === (exp.title || '').trim().toLowerCase() &&
+          e.date === exp.date
       );
 
       if (!isDuplicate) {
-        const locId = await resolveLocationId(supabase, exp.location, exp.location_id);
+        const locId = await resolveOrCreateLocationId(
+          supabase,
+          exp.location,
+          exp.location_id,
+          localLocations
+        );
         if (locId) {
           const catId = await resolveCategoryId(supabase, exp.category_id);
-          await supabase.from('experiences').insert({
+          const { error: expInsErr } = await supabase.from('experiences').insert({
             user_id: user.id,
             location_id: locId,
             title: exp.title || 'Untitled Experience',
@@ -205,21 +206,29 @@ export async function POST(request: Request) {
             notes: exp.notes || null,
             cover_image_url: exp.cover_image_url || null,
           });
+          if (expInsErr) {
+            console.warn('Sync migrate experience error:', expInsErr.message);
+          }
         }
       }
     }
 
     // 2. Migrate Local Wishlist Items
     for (const item of localWishlistItems) {
-      const isLocalOnly = !item.id || !UUID_REGEX.test(item.id) || item.user_id !== user.id;
+      const isLocalOnly = !isValidUuid(item.id) || item.user_id !== user.id;
       if (!isLocalOnly) continue;
 
       const isDuplicate = existingWishlist?.some(
-        (w) => w.title.trim().toLowerCase() === (item.title || '').trim().toLowerCase()
+        (w: any) => w.title.trim().toLowerCase() === (item.title || '').trim().toLowerCase()
       );
 
       if (!isDuplicate) {
-        const locId = await resolveLocationId(supabase, item.location, item.location_id);
+        const locId = await resolveOrCreateLocationId(
+          supabase,
+          item.location,
+          item.location_id,
+          localLocations
+        );
         const catId = await resolveCategoryId(supabase, item.category_id);
         const itemStatus = item.status || (item.is_completed ? 'visited' : 'dreaming');
 
@@ -240,71 +249,45 @@ export async function POST(request: Request) {
         };
 
         const { error: insErr } = await supabase.from('wishlist_items').insert(insertPayload);
-        if (insErr && (insErr.message.includes('column "status"') || insErr.message.includes('column "tags"'))) {
+        if (
+          insErr &&
+          (insErr.message.includes('column "status"') || insErr.message.includes('column "tags"'))
+        ) {
           delete insertPayload.status;
           delete insertPayload.tags;
           await supabase.from('wishlist_items').insert(insertPayload);
+        } else if (insErr) {
+          console.warn('Sync migrate wishlist error:', insErr.message);
         }
       }
     }
 
-    // 3. Return fresh unified server state
-    const { data: experiences } = await supabase
-      .from('experiences')
-      .select('*, location:locations(*), category:categories(*), media:experience_media(*)')
-      .eq('user_id', user.id)
-      .order('date', { ascending: false });
+    // 3. Migrate Local Adventures ("Pinned Plans")
+    for (const adv of localAdventures) {
+      const isLocalOnly = !isValidUuid(adv.id) || adv.user_id !== user.id;
+      if (!isLocalOnly) continue;
 
-    const { data: wishlistItems } = await supabase
-      .from('wishlist_items')
-      .select('*, location:locations(*), category:categories(*)')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
+      const isDuplicate = existingAdventures?.some(
+        (a: any) => a.title.trim().toLowerCase() === (adv.title || '').trim().toLowerCase()
+      );
 
-    const { data: adventures } = await supabase
-      .from('adventures')
-      .select('*, destinations:adventure_destinations(*, location:locations(*))')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
+      if (!isDuplicate) {
+        await persistAdventureToSupabase(
+          supabase,
+          user.id,
+          adv,
+          Array.isArray(adv.destinations) ? adv.destinations : []
+        );
+      }
+    }
 
-    const locationsMap = new Map<string, any>();
-    (experiences || []).forEach((e: any) => {
-      if (e.location) locationsMap.set(e.location.id, e.location);
-    });
-    (wishlistItems || []).forEach((w: any) => {
-      if (w.location) locationsMap.set(w.location.id, w.location);
-    });
-
-    const { data: preferences } = await supabase
-      .from('user_preferences')
-      .select('*')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    const { data: profile } = await supabase
-      .from('user_profiles')
-      .select('full_name, email, avatar_url')
-      .eq('id', user.id)
-      .maybeSingle();
+    // 4. Return fresh unified server state
+    const unified = await fetchUnifiedUserState(supabase, user.id);
 
     return NextResponse.json({
       success: true,
       migrated: true,
-      experiences: experiences || [],
-      wishlistItems: (wishlistItems || []).map((w: any) => ({
-        ...w,
-        status: w.status || (w.is_completed ? 'visited' : 'dreaming'),
-      })),
-      adventures: adventures || [],
-      locations: Array.from(locationsMap.values()),
-      preferences: preferences || null,
-      profile: profile
-        ? {
-            fullName: profile.full_name,
-            email: profile.email,
-            avatarUrl: profile.avatar_url,
-          }
-        : null,
+      ...unified,
     });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Server error' }, { status: 500 });

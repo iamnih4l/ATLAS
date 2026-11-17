@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { Adventure, AdventureDestination } from '@/types';
+import {
+  isValidUuid,
+  normalizeDbAdventure,
+  persistAdventureToSupabase,
+} from '@/lib/adventure-db';
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     const supabase = await createClient();
     const {
@@ -20,7 +24,7 @@ export async function GET(request: Request) {
       .from('adventures')
       .select(`
         *,
-        destinations:adventure_destinations(*)
+        destinations:adventure_destinations(*, location:locations(*))
       `)
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
@@ -34,16 +38,10 @@ export async function GET(request: Request) {
       });
     }
 
-    // Sort destinations by order_index for each adventure
-    const sortedAdventures = (adventures || []).map((adv: any) => ({
-      ...adv,
-      destinations: (adv.destinations || []).sort(
-        (a: AdventureDestination, b: AdventureDestination) => a.order_index - b.order_index
-      ),
-    }));
+    const normalizedAdventures = (adventures || []).map(normalizeDbAdventure);
 
     return NextResponse.json({
-      adventures: sortedAdventures,
+      adventures: normalizedAdventures,
       authenticated: true,
     });
   } catch (err: any) {
@@ -72,76 +70,41 @@ export async function POST(request: Request) {
       );
     }
 
-    const userId = user?.id || 'guest-user';
-    const adventureId = adventure.id || `adv-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-
-    const adventurePayload = {
-      id: adventureId,
-      user_id: userId,
-      title: adventure.title,
-      description: adventure.description || null,
-      status: adventure.status || 'planned',
-      target_start_date: adventure.target_start_date || null,
-      target_end_date: adventure.target_end_date || null,
-      estimated_budget: adventure.estimated_budget || null,
-      currency: adventure.currency || 'USD',
-      notes: adventure.notes || null,
-      cover_image_url: adventure.cover_image_url || null,
-      is_bucket_list: adventure.is_bucket_list ?? false,
-      conversation_id: adventure.conversation_id || null,
-      updated_at: new Date().toISOString(),
-    };
-
     if (user) {
-      const { data: savedAdv, error: advError } = await supabase
-        .from('adventures')
-        .upsert(adventurePayload)
-        .select()
-        .single();
+      const { adventure: savedAdventure, error } = await persistAdventureToSupabase(
+        supabase,
+        user.id,
+        adventure,
+        destinations
+      );
 
-      if (advError) {
-        console.warn('Supabase upsert adventure error:', advError.message);
+      if (savedAdventure) {
+        return NextResponse.json({
+          success: true,
+          authenticated: true,
+          adventure: savedAdventure,
+        });
       }
 
-      if (destinations && destinations.length > 0) {
-        const destRows = destinations.map((d: any, idx: number) => ({
-          id: d.id || `dest-${Date.now()}-${idx}`,
-          adventure_id: adventureId,
-          user_id: user.id,
-          location_id: d.location_id || null,
-          name: d.name,
-          city: d.city || null,
-          country: d.country || '',
-          latitude: Number(d.latitude) || 0,
-          longitude: Number(d.longitude) || 0,
-          order_index: d.order_index ?? idx,
-          day_number: d.day_number ?? null,
-          target_date: d.target_date ?? null,
-          notes: d.notes ?? null,
-          activities: d.activities || [],
-          is_completed: d.is_completed ?? false,
-          completed_experience_id: d.completed_experience_id || null,
-          updated_at: new Date().toISOString(),
-        }));
-
-        await supabase.from('adventure_destinations').upsert(destRows);
-      }
+      console.warn('API /api/adventures POST fell back after error:', error);
+      return NextResponse.json(
+        {
+          success: false,
+          error: error || 'Failed to persist adventure to Supabase',
+          adventure,
+        },
+        { status: 200 }
+      );
     }
 
-    const completeAdventure: Adventure = {
-      ...adventurePayload,
-      created_at: adventure.created_at || new Date().toISOString(),
-      destinations: destinations.map((d: any, idx: number) => ({
-        ...d,
-        id: d.id || `dest-${Date.now()}-${idx}`,
-        adventure_id: adventureId,
-        order_index: d.order_index ?? idx,
-      })),
-    };
-
+    // Guest / unauthenticated fallback
     return NextResponse.json({
       success: true,
-      adventure: completeAdventure,
+      authenticated: false,
+      adventure: {
+        ...adventure,
+        destinations,
+      },
     });
   } catch (err: any) {
     console.error('API /api/adventures POST error:', err);
@@ -166,13 +129,22 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'Adventure ID required' }, { status: 400 });
     }
 
-    if (user) {
+    if (user && isValidUuid(id)) {
+      // Map frontend fields to valid DB columns
+      const dbUpdates: Record<string, any> = {
+        updated_at: new Date().toISOString(),
+      };
+      if (updates.title !== undefined) dbUpdates.title = updates.title;
+      if (updates.description !== undefined) dbUpdates.description = updates.description;
+      if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
+      if (updates.status !== undefined) dbUpdates.status = updates.status;
+      if (updates.cover_image_url !== undefined) dbUpdates.cover_image_url = updates.cover_image_url;
+      if (updates.target_start_date !== undefined) dbUpdates.start_date = updates.target_start_date;
+      if (updates.target_end_date !== undefined) dbUpdates.end_date = updates.target_end_date;
+
       const { error } = await supabase
         .from('adventures')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString(),
-        })
+        .update(dbUpdates)
         .eq('id', id)
         .eq('user_id', user.id);
 
@@ -201,8 +173,7 @@ export async function DELETE(request: Request) {
       data: { user },
     } = await supabase.auth.getUser();
 
-    if (user) {
-      // First delete linked destinations
+    if (user && isValidUuid(id)) {
       await supabase.from('adventure_destinations').delete().eq('adventure_id', id);
       await supabase.from('adventures').delete().eq('id', id).eq('user_id', user.id);
     }
