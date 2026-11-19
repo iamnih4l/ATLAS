@@ -1,0 +1,819 @@
+<!doctype html>
+<html lang="en" data-resolution="portrait">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>ATLAS — Cinematic Product Demo</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <style>
+      :root {
+        --cream: #FFF4D9;
+        --purple: #6425F5;
+        --yellow: #FFD45A;
+        --red: #F04432;
+        --blue: #326BEE;
+        --ink: #171313;
+        --dark-bg: #0B0D14;
+        --card-bg: rgba(23, 26, 38, 0.94);
+        --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, Helvetica, Arial, sans-serif;
+        --font-mono: "JetBrains Mono", Consolas, Menlo, monospace;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html, body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: var(--dark-bg);
+        font-family: var(--font-sans);
+        color: #FFFFFF;
+        -webkit-font-smoothing: antialiased;
+      }
+      #root {
+        position: relative;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: var(--dark-bg);
+      }
+      .scene {
+        position: absolute;
+        inset: 0;
+        width: 1080px;
+        height: 1920px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        pointer-events: none;
+        overflow: hidden;
+      }
+
+      /* Subtle Grid Texture */
+      .grid-pattern {
+        position: absolute;
+        inset: 0;
+        background-size: 40px 40px;
+        background-image: 
+          linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+          linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+        pointer-events: none;
+      }
+      .grid-cream {
+        background-image: 
+          linear-gradient(to right, rgba(100, 37, 245, 0.07) 1px, transparent 1px),
+          linear-gradient(to bottom, rgba(100, 37, 245, 0.07) 1px, transparent 1px);
+      }
+
+      /* Global Top Brand Header */
+      .brand-pill {
+        position: absolute;
+        top: 90px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 28px;
+        border-radius: 9999px;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(14px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        z-index: 50;
+      }
+      .brand-dot {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: var(--yellow);
+        box-shadow: 0 0 10px var(--yellow);
+      }
+      .brand-text {
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: #FFFFFF;
+      }
+
+      /* Subtitle Bar at Bottom */
+      .caption-container {
+        position: absolute;
+        bottom: 90px;
+        left: 80px;
+        right: 80px;
+        z-index: 100;
+        display: flex;
+        justify-content: center;
+      }
+      .caption-box {
+        background: rgba(11, 13, 20, 0.94);
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        border-radius: 28px;
+        padding: 26px 40px;
+        max-width: 920px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7);
+        text-align: center;
+      }
+      .caption-text {
+        font-size: 34px;
+        line-height: 1.4;
+        font-weight: 600;
+        color: #F9FAFB;
+      }
+      .hl-yellow {
+        color: var(--yellow);
+        font-weight: 800;
+      }
+      .hl-purple {
+        color: #C4B5FD;
+        font-weight: 800;
+      }
+
+      /* =================== SCENE 1: INTRO =================== */
+      #scene1 {
+        background: var(--cream);
+        color: var(--ink);
+      }
+      .s1-plane-wrap {
+        position: absolute;
+        top: 24%;
+        left: 0;
+        width: 100%;
+        height: 350px;
+      }
+      .s1-svg-trail {
+        width: 100%;
+        height: 100%;
+        overflow: visible;
+      }
+      .s1-logo-box {
+        position: relative;
+        z-index: 10;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        margin-top: 100px;
+      }
+      .s1-logo-img {
+        width: 220px;
+        height: 220px;
+        border-radius: 48px;
+        box-shadow: 0 24px 60px rgba(100, 37, 245, 0.35);
+        margin-bottom: 32px;
+      }
+      .s1-title {
+        font-size: 110px;
+        font-weight: 900;
+        letter-spacing: -0.04em;
+        line-height: 1;
+        color: var(--purple);
+        text-transform: uppercase;
+      }
+      .s1-tagline {
+        font-size: 42px;
+        font-weight: 700;
+        color: var(--ink);
+        margin-top: 16px;
+        letter-spacing: -0.02em;
+      }
+      .s1-founder-card {
+        margin-top: 48px;
+        background: #FFFFFF;
+        border: 2px solid var(--ink);
+        border-radius: 20px;
+        padding: 18px 36px;
+        box-shadow: 6px 6px 0px var(--ink);
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      .s1-founder-badge {
+        font-size: 28px;
+        font-weight: 800;
+        color: var(--purple);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .s1-founder-sub {
+        font-size: 28px;
+        color: #374151;
+        font-weight: 600;
+      }
+
+      /* =================== SCENE 2: WHAT I BUILT =================== */
+      #scene2 {
+        background: radial-gradient(circle at 50% 30%, #1E1B4B 0%, #0B0D14 70%);
+      }
+      .phone-frame {
+        position: relative;
+        width: 700px;
+        height: 1240px;
+        background: #000000;
+        border-radius: 52px;
+        border: 8px solid #27272A;
+        box-shadow: 0 40px 100px rgba(0, 0, 0, 0.8), 0 0 40px rgba(100, 37, 245, 0.25);
+        overflow: hidden;
+        margin-top: 60px;
+      }
+      .phone-screen {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .feature-tag-row {
+        position: absolute;
+        top: 150px;
+        display: flex;
+        gap: 16px;
+        z-index: 30;
+      }
+      .feat-tag {
+        background: rgba(100, 37, 245, 0.9);
+        backdrop-filter: blur(10px);
+        color: #FFFFFF;
+        padding: 14px 28px;
+        border-radius: 9999px;
+        font-size: 28px;
+        font-weight: 700;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+      }
+      .s2-headline {
+        position: absolute;
+        top: 220px;
+        font-size: 46px;
+        font-weight: 800;
+        text-align: center;
+        letter-spacing: -0.02em;
+        color: #FFFFFF;
+        text-shadow: 0 4px 20px rgba(0,0,0,0.8);
+        z-index: 30;
+        max-width: 900px;
+      }
+
+      /* =================== SCENE 3: EMBARKO EXPERIENCE =================== */
+      #scene3 {
+        background: radial-gradient(circle at 50% 40%, #161233 0%, #07080D 80%);
+      }
+      .dev-window {
+        width: 900px;
+        background: rgba(18, 20, 31, 0.95);
+        border: 2px solid rgba(255, 255, 255, 0.15);
+        border-radius: 32px;
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7);
+        overflow: hidden;
+        margin-top: 80px;
+      }
+      .window-header {
+        background: rgba(255, 255, 255, 0.06);
+        padding: 22px 32px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .w-dot {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+      }
+      .w-red { background: #EF4444; }
+      .w-yellow { background: #F59E0B; }
+      .w-green { background: #10B981; }
+      .window-title {
+        margin-left: 12px;
+        font-family: var(--font-mono);
+        font-size: 28px;
+        color: #D1D5DB;
+        font-weight: 600;
+      }
+      .window-body {
+        padding: 40px;
+      }
+      .prompt-box {
+        background: rgba(100, 37, 245, 0.2);
+        border-left: 8px solid var(--purple);
+        padding: 28px;
+        border-radius: 14px;
+        font-size: 30px;
+        line-height: 1.5;
+        color: #EEF2FF;
+        margin-bottom: 32px;
+        font-weight: 500;
+      }
+      .pipeline-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+      }
+      .pipe-card {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 20px;
+        padding: 26px;
+      }
+      .pipe-icon {
+        font-size: 40px;
+        margin-bottom: 12px;
+      }
+      .pipe-title {
+        font-size: 30px;
+        font-weight: 700;
+        color: #FFFFFF;
+        margin-bottom: 8px;
+      }
+      .pipe-desc {
+        font-size: 28px;
+        color: #9CA3AF;
+        line-height: 1.4;
+      }
+
+      /* =================== SCENE 4: HOSTING AT EMBARKO =================== */
+      #scene4 {
+        background: radial-gradient(circle at 50% 30%, #0F172A 0%, #030712 80%);
+      }
+      .terminal-frame {
+        width: 900px;
+        background: #090D16;
+        border: 2px solid #1E293B;
+        border-radius: 28px;
+        box-shadow: 0 40px 100px rgba(0, 0, 0, 0.9), 0 0 50px rgba(50, 107, 238, 0.2);
+        overflow: hidden;
+      }
+      .term-body {
+        padding: 40px;
+        font-family: var(--font-mono);
+        font-size: 28px;
+        line-height: 1.8;
+      }
+      .term-cmd {
+        color: #38BDF8;
+        font-weight: 700;
+      }
+      .term-success {
+        color: #4ADE80;
+        font-weight: 700;
+      }
+      .term-highlight {
+        color: var(--yellow);
+      }
+      .live-banner {
+        margin-top: 40px;
+        width: 900px;
+        background: linear-gradient(135deg, var(--purple) 0%, #4338CA 100%);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-radius: 28px;
+        padding: 32px 40px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        box-shadow: 0 20px 50px rgba(100, 37, 245, 0.5);
+      }
+      .live-badge {
+        background: #10B981;
+        color: #FFFFFF;
+        font-size: 28px;
+        font-weight: 800;
+        padding: 8px 24px;
+        border-radius: 9999px;
+        margin-bottom: 14px;
+        letter-spacing: 0.08em;
+      }
+      .live-url {
+        font-size: 40px;
+        font-weight: 800;
+        color: #FFFFFF;
+        letter-spacing: -0.01em;
+        text-decoration: underline;
+        text-underline-offset: 8px;
+      }
+
+      /* =================== SCENE 5: THE WOW FACTOR =================== */
+      #scene5 {
+        background: #05060A;
+      }
+      .wow-globe-wrap {
+        position: relative;
+        width: 800px;
+        height: 800px;
+        margin-top: -40px;
+      }
+      .wow-globe-img {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        box-shadow: 0 0 120px rgba(50, 107, 238, 0.45);
+        object-fit: cover;
+      }
+      .wow-radar {
+        position: absolute;
+        top: 48%;
+        left: 56%;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: var(--red);
+        box-shadow: 0 0 24px var(--red);
+      }
+      .wow-card {
+        width: 900px;
+        background: rgba(18, 20, 31, 0.94);
+        backdrop-filter: blur(20px);
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        border-radius: 32px;
+        padding: 32px;
+        margin-top: 36px;
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.8);
+        display: flex;
+        gap: 28px;
+        align-items: center;
+      }
+      .wow-card-img {
+        width: 190px;
+        height: 190px;
+        border-radius: 20px;
+        object-fit: cover;
+      }
+      .wow-card-info {
+        flex: 1;
+      }
+      .wow-tag {
+        display: inline-block;
+        background: var(--purple);
+        color: #FFFFFF;
+        font-size: 28px;
+        font-weight: 800;
+        padding: 6px 18px;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        letter-spacing: 0.05em;
+      }
+      .wow-dest {
+        font-size: 36px;
+        font-weight: 800;
+        color: #FFFFFF;
+        margin-bottom: 8px;
+      }
+      .wow-desc {
+        font-size: 28px;
+        color: #D1D5DB;
+        line-height: 1.4;
+      }
+      .wow-headline {
+        position: absolute;
+        top: 150px;
+        font-size: 64px;
+        font-weight: 900;
+        letter-spacing: -0.03em;
+        text-transform: uppercase;
+        color: var(--yellow);
+        text-shadow: 0 4px 20px rgba(0, 0, 0, 0.9);
+      }
+
+      /* =================== SCENE 6: CALL TO ACTION =================== */
+      #scene6 {
+        background: radial-gradient(circle at 50% 40%, #2A1B54 0%, #0B0D14 75%);
+        text-align: center;
+      }
+      .cta-logo {
+        width: 180px;
+        height: 180px;
+        border-radius: 40px;
+        box-shadow: 0 20px 60px rgba(100, 37, 245, 0.5);
+        margin-bottom: 24px;
+      }
+      .cta-title-1 {
+        font-size: 64px;
+        font-weight: 900;
+        letter-spacing: -0.02em;
+        color: #FFFFFF;
+        line-height: 1.1;
+      }
+      .cta-title-2 {
+        font-size: 72px;
+        font-weight: 900;
+        letter-spacing: -0.02em;
+        color: var(--yellow);
+        line-height: 1.1;
+        margin-bottom: 36px;
+      }
+      .cta-box {
+        width: 900px;
+        background: rgba(255, 255, 255, 0.07);
+        border: 2px solid rgba(255, 255, 255, 0.25);
+        border-radius: 32px;
+        padding: 36px;
+        backdrop-filter: blur(20px);
+        margin-bottom: 32px;
+      }
+      .cta-badge {
+        display: inline-block;
+        background: var(--purple);
+        color: #FFFFFF;
+        font-size: 28px;
+        font-weight: 800;
+        padding: 10px 28px;
+        border-radius: 9999px;
+        margin-bottom: 16px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      .cta-url {
+        font-size: 44px;
+        font-weight: 800;
+        color: #FFFFFF;
+        font-family: var(--font-mono);
+      }
+      .cta-hashtag {
+        font-size: 34px;
+        font-weight: 700;
+        color: #38BDF8;
+        letter-spacing: 0.05em;
+        margin-top: 20px;
+      }
+      .cta-founder-tag {
+        font-size: 28px;
+        color: #9CA3AF;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="86"
+      data-width="1080"
+      data-height="1920"
+    >
+      <!-- Master Audio Track -->
+      <audio id="master-audio" data-start="0" data-duration="86" data-track-index="1" data-volume="1" src="assets/audio-master.mp3"></audio>
+
+      <!-- Persistent Brand Badge -->
+      <div id="brand-header" class="brand-pill clip" data-start="0" data-duration="86" data-track-index="0" data-layout-allow-safe-zone>
+        <div class="brand-dot"></div>
+        <span class="brand-text">ATLAS • Embarko Showcase</span>
+      </div>
+
+      <!-- ================= SCENE 1 ================= -->
+      <div id="scene1" class="scene" data-start="0" data-duration="12" data-track-index="2" data-hold>
+        <div class="grid-pattern grid-cream"></div>
+        <div class="s1-plane-wrap">
+          <svg class="s1-svg-trail" viewBox="0 0 1080 350">
+            <path id="plane-path" d="M -50,220 Q 350,60 650,180 T 1150,120" fill="none" stroke="#6425F5" stroke-width="6" stroke-dasharray="14 14" />
+            <g id="pixel-plane" transform="translate(100, 180)">
+              <rect x="0" y="8" width="40" height="12" fill="#F04432" rx="4" />
+              <polygon points="20,8 10,-12 30,-12" fill="#FFD45A" />
+              <polygon points="20,20 10,40 30,40" fill="#FFD45A" />
+              <polygon points="0,8 -10,0 -6,14" fill="#326BEE" />
+              <circle cx="34" cy="14" r="3" fill="#FFFFFF" />
+            </g>
+          </svg>
+        </div>
+
+        <div class="s1-logo-box">
+          <img src="assets/images/icon-512.png" alt="ATLAS Logo" class="s1-logo-img" />
+          <h1 class="s1-title">ATLAS</h1>
+          <p class="s1-tagline">Your Life, Mapped.</p>
+          <div class="s1-founder-card">
+            <span class="s1-founder-badge">Founder</span>
+            <span class="s1-founder-sub">Mohammed Nihal • Student Developer</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= SCENE 2 ================= -->
+      <div id="scene2" class="scene" data-start="12" data-duration="18" data-track-index="3" data-hold>
+        <div class="grid-pattern"></div>
+        <div class="feature-tag-row">
+          <span class="feat-tag">Interactive 3D Earth</span>
+          <span class="feat-tag">Geo-Pinned Memories</span>
+        </div>
+        <h2 class="s2-headline">Your Memories. Your Adventures. Your World.</h2>
+
+        <div class="phone-frame">
+          <img id="screen-globe" src="assets/images/01_globe_main.png" alt="Interactive Globe" class="phone-screen" style="opacity: 1;" />
+          <img id="screen-pin" src="assets/images/02_globe_pin_open.png" alt="Pin Details" class="phone-screen" style="opacity: 0;" />
+          <img id="screen-mem" src="assets/images/03_memories.png" alt="Memories Journal" class="phone-screen" style="opacity: 0;" />
+          <img id="screen-wish" src="assets/images/04_wishlist.png" alt="Dream List" class="phone-screen" style="opacity: 0;" />
+        </div>
+      </div>
+
+      <!-- ================= SCENE 3 ================= -->
+      <div id="scene3" class="scene" data-start="30" data-duration="16" data-track-index="4" data-hold>
+        <div class="grid-pattern"></div>
+        <div class="dev-window">
+          <div class="window-header">
+            <div class="w-dot w-red"></div>
+            <div class="w-dot w-yellow"></div>
+            <div class="w-dot w-green"></div>
+            <span class="window-title">atlas-app • conception to code</span>
+          </div>
+          <div class="window-body">
+            <div class="prompt-box">
+              <span style="color: #FFD45A; font-weight: 700;">// Concept Prompt</span><br />
+              "Build ATLAS: A personal geographical experience journal with an interactive 3D Earth, realtime sync, and automatic Dream List classification."
+            </div>
+            <div class="pipeline-grid">
+              <div class="pipe-card">
+                <div class="pipe-icon">💡</div>
+                <div class="pipe-title">Vision</div>
+                <div class="pipe-desc">Map life experiences to real 3D coordinates.</div>
+              </div>
+              <div class="pipe-card">
+                <div class="pipe-icon">⚡</div>
+                <div class="pipe-title">Embarko AI</div>
+                <div class="pipe-desc">Describe the idea, interact with the result.</div>
+              </div>
+              <div class="pipe-card">
+                <div class="pipe-icon">🔄</div>
+                <div class="pipe-title">Realtime Sync</div>
+                <div class="pipe-desc">Phone to laptop instant synchronisation.</div>
+              </div>
+              <div class="pipe-card">
+                <div class="pipe-icon">🌍</div>
+                <div class="pipe-title">Living Globe</div>
+                <div class="pipe-desc">Pins, flight arcs &amp; landmark photos.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= SCENE 4 ================= -->
+      <div id="scene4" class="scene" data-start="46" data-duration="14" data-track-index="5" data-hold>
+        <div class="grid-pattern"></div>
+        <div class="terminal-frame">
+          <div class="window-header">
+            <div class="w-dot w-red"></div>
+            <div class="w-dot w-yellow"></div>
+            <div class="w-dot w-green"></div>
+            <span class="window-title">bash — embarko deploy</span>
+          </div>
+          <div class="term-body">
+            <p><span class="term-cmd">$ npx embarko deploy</span></p>
+            <p>==&gt; App: <span class="term-highlight">atlas-app</span> (v1ccccb6)</p>
+            <p>==&gt; Packaging atlas-app -&gt; atlas-app.tar.gz [2.04 MB]</p>
+            <p>==&gt; Uploading source to ship.embarko.ai...</p>
+            <p>==&gt; Cloud Build: Node.js &amp; Next.js 16.4</p>
+            <p>==&gt; <span class="term-success">[✓] Status: LIVE (HTTP 200 OK)</span></p>
+            <p>==&gt; Permanent deployment claimed for <span class="term-highlight">nihalnihz95@gmail.com</span></p>
+          </div>
+        </div>
+
+        <div class="live-banner">
+          <span class="live-badge">OFFICIALLY LIVE</span>
+          <span class="live-url">https://atlas-app.embarko.app</span>
+        </div>
+      </div>
+
+      <!-- ================= SCENE 5 ================= -->
+      <div id="scene5" class="scene" data-start="60" data-duration="16" data-track-index="6" data-hold>
+        <div class="grid-pattern"></div>
+        <h2 class="wow-headline">Your Life, Mapped.</h2>
+        <div class="wow-globe-wrap">
+          <img id="wow-globe-img" src="assets/images/earth_real.jpg" alt="3D Earth" class="wow-globe-img" />
+          <div class="wow-radar">
+            <div class="wow-radar-ring"></div>
+          </div>
+        </div>
+        <div class="wow-card">
+          <img src="assets/images/02_globe_pin_open.png" alt="Memory Landmark" class="wow-card-img" />
+          <div class="wow-card-info">
+            <span class="wow-tag">BUCKET LIST • DREAMING</span>
+            <div class="wow-dest">Skydive Dubai</div>
+            <div class="wow-desc">4,000m freefall over Palm Jumeirah. Coordinates stored &amp; synced across every device.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= SCENE 6 ================= -->
+      <div id="scene6" class="scene" data-start="76" data-duration="10" data-track-index="7" data-hold>
+        <div class="grid-pattern"></div>
+        <img src="assets/images/icon-512.png" alt="ATLAS Logo" class="cta-logo" />
+        <h2 class="cta-title-1">THIS IS MY ATLAS.</h2>
+        <h2 class="cta-title-2">WHERE IS YOURS?</h2>
+
+        <div class="cta-box">
+          <span class="cta-badge">Explore ATLAS Live</span>
+          <div class="cta-url">atlas-app.embarko.app</div>
+          <div class="cta-hashtag">#DeployWithEmbarko</div>
+        </div>
+
+        <p class="cta-founder-tag">Built with vision by Mohammed Nihal</p>
+      </div>
+
+      <!-- ================= SUBTITLES OVERLAY ================= -->
+      <div class="caption-container" data-layout-allow-safe-zone>
+        <div class="caption-box" data-layout-allow-safe-zone>
+          <p id="caption" class="caption-text" data-layout-allow-safe-zone>...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- GSAP Master Animation Controller -->
+    <script>
+      const tl = gsap.timeline({ paused: true });
+      window.__timelines = { main: tl };
+
+      const cap = document.getElementById("caption");
+
+      // Scene 1: 0s to 12s
+      tl.set("#scene1", { opacity: 1, pointerEvents: "auto" }, 0);
+      tl.fromTo("#pixel-plane", { x: -80, y: 220, rotation: -10 }, { x: 950, y: 120, rotation: 5, duration: 8, ease: "power1.inOut" }, 0);
+      tl.fromTo(".s1-logo-box", { opacity: 0, scale: 0.85, y: 40 }, { opacity: 1, scale: 1, y: 0, duration: 1.2, ease: "back.out(1.4)" }, 2.5);
+      tl.to(".s1-logo-box", { scale: 1.04, duration: 8, ease: "sine.inOut" }, 3.8);
+
+      // Captions Part 1
+      tl.call(() => { cap.innerHTML = "Hi, I'm <span class='hl-yellow'>Mohammed Nihal</span>. I'm a student developer and founder..."; }, null, 1.0);
+      tl.call(() => { cap.innerHTML = "...and I built <span class='hl-purple'>ATLAS</span> around a simple idea: what if we could <span class='hl-yellow'>map our lives</span>?"; }, null, 5.5);
+
+      // Transition S1 -> S2 (at 12s)
+      tl.to("#scene1", { opacity: 0, duration: 0.6, ease: "power2.inOut" }, 11.5);
+      tl.set("#scene1", { pointerEvents: "none" }, 12.0);
+
+      // Scene 2: 12s to 30s
+      tl.set("#scene2", { opacity: 1, pointerEvents: "auto" }, 12.0);
+      tl.fromTo("#scene2 .phone-frame", { opacity: 0, y: 80, scale: 0.9 }, { opacity: 1, y: 0, scale: 1, duration: 1.0, ease: "power3.out" }, 12.2);
+      tl.to("#scene2 .phone-frame", { y: -25, rotation: 1.2, duration: 16, ease: "sine.inOut" }, 13.2);
+
+      // Screen switches in phone
+      tl.to("#screen-globe", { opacity: 0, duration: 0.4 }, 16.5);
+      tl.to("#screen-pin", { opacity: 1, duration: 0.4 }, 16.5);
+      tl.to("#screen-pin", { opacity: 0, duration: 0.4 }, 21.0);
+      tl.to("#screen-mem", { opacity: 1, duration: 0.4 }, 21.0);
+      tl.to("#screen-mem", { opacity: 0, duration: 0.4 }, 25.5);
+      tl.to("#screen-wish", { opacity: 1, duration: 0.4 }, 25.5);
+
+      // Captions Part 2
+      tl.call(() => { cap.innerHTML = "<span class='hl-purple'>ATLAS</span> is my personal geographical experience journal."; }, null, 12.5);
+      tl.call(() => { cap.innerHTML = "I can map the places I've been, attach memories, and keep track of <span class='hl-yellow'>dream adventures</span>."; }, null, 19.0);
+
+      // Transition S2 -> S3 (at 30s)
+      tl.to("#scene2", { opacity: 0, duration: 0.6, ease: "power2.inOut" }, 29.5);
+      tl.set("#scene2", { pointerEvents: "none" }, 30.0);
+
+      // Scene 3: 30s to 46s
+      tl.set("#scene3", { opacity: 1, pointerEvents: "auto" }, 30.0);
+      tl.fromTo(".dev-window", { opacity: 0, scale: 0.92, y: 50 }, { opacity: 1, scale: 1, y: 0, duration: 1.0, ease: "back.out(1.2)" }, 30.3);
+      tl.fromTo(".pipe-card", { opacity: 0, y: 20 }, { opacity: 1, y: 0, stagger: 0.2, duration: 0.8, ease: "power2.out" }, 33.0);
+      tl.to(".dev-window", { y: -20, duration: 12, ease: "sine.inOut" }, 33.8);
+
+      // Captions Part 3
+      tl.call(() => { cap.innerHTML = "I brought the idea to <span class='hl-purple'>Embarko</span> and worked through turning that concept into a real app."; }, null, 30.5);
+      tl.call(() => { cap.innerHTML = "Moving from describing what I imagined to actually <span class='hl-yellow'>interacting with what I built</span>."; }, null, 37.0);
+
+      // Transition S3 -> S4 (at 46s)
+      tl.to("#scene3", { opacity: 0, duration: 0.6, ease: "power2.inOut" }, 45.5);
+      tl.set("#scene3", { pointerEvents: "none" }, 46.0);
+
+      // Scene 4: 46s to 60s
+      tl.set("#scene4", { opacity: 1, pointerEvents: "auto" }, 46.0);
+      tl.fromTo(".terminal-frame", { opacity: 0, y: 60 }, { opacity: 1, y: 0, duration: 0.8, ease: "power3.out" }, 46.2);
+      tl.fromTo(".live-banner", { opacity: 0, scale: 0.85, y: 30 }, { opacity: 1, scale: 1, y: 0, duration: 1.0, ease: "back.out(1.5)" }, 49.0);
+      tl.to(".live-banner", { scale: 1.03, duration: 8, yoyo: true, repeat: 1, ease: "sine.inOut" }, 50.0);
+
+      // Captions Part 4
+      tl.call(() => { cap.innerHTML = "Once the experience was ready, I used <span class='hl-purple'>Embarko</span> to take ATLAS from development to a <span class='hl-yellow'>live application</span>."; }, null, 47.0);
+
+      // Transition S4 -> S5 (at 60s)
+      tl.to("#scene4", { opacity: 0, duration: 0.6, ease: "power2.inOut" }, 59.5);
+      tl.set("#scene4", { pointerEvents: "none" }, 60.0);
+
+      // Scene 5: 60s to 76s
+      tl.set("#scene5", { opacity: 1, pointerEvents: "auto" }, 60.0);
+      tl.fromTo("#wow-globe-img", { scale: 0.85, rotation: 0 }, { scale: 1.08, rotation: 35, duration: 16, ease: "none" }, 60.0);
+      tl.fromTo(".wow-card", { opacity: 0, y: 60 }, { opacity: 1, y: 0, duration: 1.0, ease: "power3.out" }, 62.0);
+      tl.to(".wow-card", { y: -15, duration: 12, ease: "sine.inOut" }, 63.0);
+
+      // Captions Part 5
+      tl.call(() => { cap.innerHTML = "The globe isn't just showing me where places are. It's becoming a <span class='hl-yellow'>map of my own life</span>."; }, null, 61.0);
+      tl.call(() => { cap.innerHTML = "The memories I've made, and the <span class='hl-purple'>adventures still waiting for me</span>."; }, null, 67.0);
+
+      // Transition S5 -> S6 (at 76s)
+      tl.to("#scene5", { opacity: 0, duration: 0.6, ease: "power2.inOut" }, 75.5);
+      tl.set("#scene5", { pointerEvents: "none" }, 76.0);
+
+      // Scene 6: 76s to 86s
+      tl.set("#scene6", { opacity: 1, pointerEvents: "auto" }, 76.0);
+      tl.fromTo(".cta-logo", { scale: 0, rotation: -20 }, { scale: 1, rotation: 0, duration: 1.0, ease: "back.out(1.6)" }, 76.2);
+      tl.fromTo([".cta-title-1", ".cta-title-2"], { opacity: 0, y: 30 }, { opacity: 1, y: 0, stagger: 0.3, duration: 0.8, ease: "power3.out" }, 76.8);
+      tl.fromTo(".cta-box", { opacity: 0, scale: 0.9 }, { opacity: 1, scale: 1, duration: 0.8, ease: "back.out(1.4)" }, 78.0);
+      tl.to(".cta-box", { scale: 1.03, duration: 7, ease: "sine.inOut" }, 78.8);
+
+      // Captions Part 6
+      tl.call(() => { cap.innerHTML = "<span class='hl-yellow'>This is my ATLAS. Where is yours?</span> Explore ATLAS live at <span class='hl-purple'>atlas-app.embarko.app</span>."; }, null, 77.0);
+
+      tl.seek(0);
+    </script>
+  </body>
+</html>

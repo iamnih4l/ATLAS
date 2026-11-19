@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <!-- Definitions for crisp drop shadow and styles -->
+  <defs>
+    <filter id="bento-shadow" x="-15%" y="-15%" width="135%" height="135%">
+      <feDropShadow dx="14" dy="16" stdDeviation="0" flood-color="#171313" />
+    </filter>
+  </defs>
+
+  <!-- Group with signature Bento-Pop hard shadow -->
+  <g filter="url(#bento-shadow)">
+    <!-- Globe Base Sphere -->
+    <circle cx="250" cy="265" r="185" fill="#FFF4D9" stroke="#171313" stroke-width="24" />
+
+    <!-- Latitudinal & Longitudinal Meridians -->
+    <line x1="68" y1="265" x2="432" y2="265" stroke="#E6D3A3" stroke-width="14" stroke-linecap="round" />
+    <ellipse cx="250" cy="265" rx="88" ry="182" fill="none" stroke="#E6D3A3" stroke-width="14" />
+
+    <!-- Stylized Continents -->
+    <!-- North-West Continent (Emerald) -->
+    <path d="M 145 195 C 175 145, 230 155, 245 190 C 255 220, 220 245, 185 245 C 150 245, 130 220, 145 195 Z" 
+          fill="#10B981" stroke="#171313" stroke-width="16" stroke-linejoin="round" />
+
+    <!-- South-East Continent (Emerald) -->
+    <path d="M 270 280 C 315 255, 360 290, 360 330 C 360 370, 315 385, 275 365 C 250 350, 245 300, 270 280 Z" 
+          fill="#10B981" stroke="#171313" stroke-width="16" stroke-linejoin="round" />
+
+    <!-- Mini Archipelago / Island (Amber) -->
+    <circle cx="340" cy="195" r="20" fill="#F59E0B" stroke="#171313" stroke-width="12" />
+
+    <!-- Four-Pointed Explorer Sparkle Star -->
+    <path d="M 105 105 Q 125 105 125 85 Q 125 105 145 105 Q 125 105 125 125 Q 125 105 105 105 Z" 
+          fill="#F59E0B" stroke="#171313" stroke-width="10" stroke-linejoin="round" />
+
+    <!-- Landmark Location Pin -->
+    <g transform="translate(245, 95)">
+      <!-- Ground Shadow for Pin -->
+      <ellipse cx="26" cy="74" rx="16" ry="6" fill="#171313" opacity="0.35" />
+      <!-- Pin Teardrop Shape -->
+      <path d="M 26 72 C 26 72 -6 38 -6 16 C -6 -6 10 -22 30 -22 C 50 -22 66 -6 66 16 C 66 38 34 72 26 72 Z" 
+            fill="#EF4444" stroke="#171313" stroke-width="16" stroke-linejoin="round" />
+      <!-- Center Eye of Pin -->
+      <circle cx="30" cy="16" r="12" fill="#FFFFFF" stroke="#171313" stroke-width="10" />
+    </g>
+  </g>
+</svg>
+
